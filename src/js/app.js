@@ -181,6 +181,10 @@ function renderOnboardingView() {
           <button id="btn-help-client-id" class="btn btn-secondary" style="padding: 10px; font-size: 0.85rem; width: 100%; margin-top: 4px; background: rgba(255,255,255,0.05); border: 1px dashed var(--border-glass);">
             <i class="fa-regular fa-circle-question"></i> 如何查詢 Client ID？
           </button>
+
+          <button id="btn-help-pin-desktop" class="btn btn-secondary" style="padding: 10px; font-size: 0.85rem; width: 100%; margin-top: 4px; background: rgba(255,255,255,0.05); border: 1px dashed var(--border-glass);">
+            <i class="fa-solid fa-mobile-screen-button"></i> 📌 釘選手機桌面教學 (像 App 一樣使用)
+          </button>
         </div>
       </div>
     </div>
@@ -191,6 +195,7 @@ function renderOnboardingView() {
   document.getElementById('btn-open-settings').addEventListener('click', showSettingsModal);
   document.getElementById('btn-help-client-id').addEventListener('click', showClientIdHelpModal);
   document.getElementById('btn-user-manual').addEventListener('click', showUserManualModal);
+  document.getElementById('btn-help-pin-desktop').addEventListener('click', showPinToDesktopModal);
 }
 
 /**
@@ -1598,6 +1603,88 @@ function showUserManualModal() {
       </div>
     </div>
   `);
+}
+
+/**
+ * 顯示釘選桌面至手機主畫面教學 Modal (iOS 捷徑版 與 Android Chrome 版)
+ */
+function showPinToDesktopModal() {
+  showModal('📌 釘選手機桌面教學', `
+    <div style="font-size:0.85rem; display:flex; flex-direction:column; gap:12px; color:var(--text-primary);">
+      <p style="color:var(--text-secondary); margin-bottom: 4px; line-height:1.5;">
+        💡 將旅遊手札釘選在手機桌面上，使用起來就像下載的手機 App 一樣，可以全螢幕快速記錄！
+      </p>
+
+      <!-- 頁籤按鈕切換區 -->
+      <div style="display:flex; border-bottom:1px solid var(--border-glass); margin-bottom:8px; gap:8px;">
+        <button id="tab-pin-ios" style="flex:1; padding:8px; border:none; background:none; color:var(--text-primary); border-bottom: 2px solid var(--accent-primary); cursor:pointer; font-weight:600; font-size:0.85rem;">
+          📱 iPhone (iOS 捷徑)
+        </button>
+        <button id="tab-pin-android" style="flex:1; padding:8px; border:none; background:none; color:var(--text-secondary); border-bottom: 2px solid transparent; cursor:pointer; font-size:0.85rem;">
+          🤖 Android (安卓 Chrome)
+        </button>
+      </div>
+
+      <!-- iPhone (iOS) 教學內容 -->
+      <div id="content-pin-ios" style="display:block; text-align:left; max-height:300px; overflow-y:auto; padding-right:4px;">
+        <ol style="padding-left:20px; display:flex; flex-direction:column; gap:8px; line-height:1.6;">
+          <li>打開您 iPhone 桌面內建的 **「捷徑」** App 📱。</li>
+          <li>點選右上角的 **「+」** 按鈕以新增一個捷徑。</li>
+          <li>點選中間的 **「加入動作」**，在搜尋框輸入 <code style="background:rgba(255,255,255,0.08); padding:2px 4px; border-radius:4px;">打開 URL</code>，並在搜尋結果中選取該動作。</li>
+          <li>點選動作中的 'URL' 輸入框，貼入本手札網址：<br><code style="background:rgba(255,255,255,0.08); padding:2px 4px; border-radius:4px; font-size:0.75rem; word-break:break-all;">https://my-travel-journal-dusky.vercel.app/</code></li>
+          <li>點選上方捷徑名稱，選取 **「重新命名」**，輸入 '旅遊手札'。</li>
+          <li>點選名稱旁邊的箭頭（或下方分享按鈕），選取 **「加入主畫面」**。</li>
+          <li>您可以點選下方的圖標，拍照或從相簿選擇一張您喜歡的相片作為手札圖標（Icon），最後點選右上角的 **「新增」** 即可！</li>
+        </ol>
+      </div>
+
+      <!-- Android 教學內容 -->
+      <div id="content-pin-android" style="display:none; text-align:left; max-height:300px; overflow-y:auto; padding-right:4px;">
+        <ol style="padding-left:20px; display:flex; flex-direction:column; gap:8px; line-height:1.6;">
+          <li>使用 Android 手機的 **Google Chrome** 瀏覽器開啟手札網址：<br><code style="background:rgba(255,255,255,0.08); padding:2px 4px; border-radius:4px; font-size:0.75rem; word-break:break-all;">https://my-travel-journal-dusky.vercel.app/</code></li>
+          <li>點選網址列最右邊的 **「三個點 (更多選項)」** 選單。</li>
+          <li>在選單中點選 **「安裝應用程式」** 或 **「加入主畫面」**。</li>
+          <li>在彈出的視窗中確認點選 '安裝' 或 '新增' 即可！</li>
+        </ol>
+      </div>
+
+      <div style="display:flex; justify-content:center; margin-top:12px;">
+        <button class="btn btn-primary" onclick="hideModal()" style="width:100%;">我知道了，去設定！</button>
+      </div>
+    </div>
+  `);
+
+  // 實作 Tab 切換功能
+  const tabIos = document.getElementById('tab-pin-ios');
+  const tabAndroid = document.getElementById('tab-pin-android');
+  const contentIos = document.getElementById('content-pin-ios');
+  const contentAndroid = document.getElementById('content-pin-android');
+
+  tabIos.addEventListener('click', () => {
+    tabIos.style.color = 'var(--text-primary)';
+    tabIos.style.borderBottom = '2px solid var(--accent-primary)';
+    tabIos.style.fontWeight = '600';
+
+    tabAndroid.style.color = 'var(--text-secondary)';
+    tabAndroid.style.borderBottom = '2px solid transparent';
+    tabAndroid.style.fontWeight = 'normal';
+
+    contentIos.style.display = 'block';
+    contentAndroid.style.display = 'none';
+  });
+
+  tabAndroid.addEventListener('click', () => {
+    tabAndroid.style.color = 'var(--text-primary)';
+    tabAndroid.style.borderBottom = '2px solid var(--accent-primary)';
+    tabAndroid.style.fontWeight = '600';
+
+    tabIos.style.color = 'var(--text-secondary)';
+    tabIos.style.borderBottom = '2px solid transparent';
+    tabIos.style.fontWeight = 'normal';
+
+    contentIos.style.display = 'none';
+    contentAndroid.style.display = 'block';
+  });
 }
 
 /* ==========================================================================
