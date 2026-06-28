@@ -89,9 +89,15 @@ export function login(onSuccess, onError) {
  */
 export function logout() {
   if (authState.accessToken) {
-    google.accounts.oauth2.revokeToken(authState.accessToken, () => {
-      console.log('Access token revoked');
-    });
+    try {
+      if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+        google.accounts.oauth2.revokeToken(authState.accessToken, () => {
+          console.log('Access token revoked');
+        });
+      }
+    } catch (e) {
+      console.warn('撤銷 Google 憑證失敗 (可能處於離線或 SDK 未完全載入狀態):', e);
+    }
   }
   
   authState.accessToken = '';
