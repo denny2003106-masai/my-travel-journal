@@ -174,7 +174,11 @@ function renderOnboardingView() {
             <i class="fa-brands fa-google"></i> 使用 Google 帳戶登入
           </button>
           
-          <button id="btn-help-client-id" class="btn btn-secondary" style="padding: 10px; font-size: 0.85rem; width: 100%; margin-top: 8px; background: rgba(255,255,255,0.05); border: 1px dashed var(--border-glass);">
+          <button id="btn-user-manual" class="btn btn-secondary" style="padding: 10px; font-size: 0.85rem; width: 100%; margin-top: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass);">
+            <i class="fa-regular fa-compass"></i> 📖 第一次使用？看這篇簡單說明書
+          </button>
+
+          <button id="btn-help-client-id" class="btn btn-secondary" style="padding: 10px; font-size: 0.85rem; width: 100%; margin-top: 4px; background: rgba(255,255,255,0.05); border: 1px dashed var(--border-glass);">
             <i class="fa-regular fa-circle-question"></i> 如何查詢 Client ID？
           </button>
         </div>
@@ -186,6 +190,7 @@ function renderOnboardingView() {
   document.getElementById('btn-login').addEventListener('click', handleLogin);
   document.getElementById('btn-open-settings').addEventListener('click', showSettingsModal);
   document.getElementById('btn-help-client-id').addEventListener('click', showClientIdHelpModal);
+  document.getElementById('btn-user-manual').addEventListener('click', showUserManualModal);
 }
 
 /**
@@ -198,6 +203,7 @@ function renderDashboardView() {
       <h1>旅跡手札</h1>
       <div class="header-actions">
         <button class="btn btn-icon" onclick="window.toggleThemeGlobal()" title="切換主題"><i class="fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}"></i></button>
+        <button class="btn btn-icon" id="btn-dashboard-manual" title="使用說明書"><i class="fa-regular fa-compass"></i></button>
         <button class="btn btn-icon" id="btn-export-all" title="匯出成果"><i class="fa-solid fa-file-export"></i></button>
         <button class="btn btn-icon" id="btn-settings" title="設定"><i class="fa-solid fa-gears"></i></button>
         <button class="btn btn-icon" id="btn-logout" title="登出"><i class="fa-solid fa-right-from-bracket"></i></button>
@@ -237,6 +243,7 @@ function renderDashboardView() {
   document.getElementById('btn-logout').addEventListener('click', handleLogout);
   document.getElementById('btn-settings').addEventListener('click', showSettingsModal);
   document.getElementById('btn-export-all').addEventListener('click', showExportModal);
+  document.getElementById('btn-dashboard-manual').addEventListener('click', showUserManualModal);
 
   renderTripsList();
 }
@@ -1535,6 +1542,59 @@ function showClientIdHelpModal() {
       </ol>
       <div style="display:flex; justify-content:center; margin-top:12px;">
         <button class="btn btn-primary" onclick="hideModal()" style="width:100%;">我知道了</button>
+      </div>
+    </div>
+  `);
+}
+
+/**
+ * 顯示新手友善的旅遊手札使用說明書
+ */
+function showUserManualModal() {
+  showModal('📖 旅遊手札使用說明書 (新手簡單上手指南)', `
+    <div style="font-size:0.85rem; line-height:1.6; display:flex; flex-direction:column; gap:16px; color:var(--text-primary); text-align: left; max-height:420px; overflow-y:auto; padding-right:8px;">
+      
+      <div style="background: rgba(0, 242, 254, 0.05); border-left: 4px solid var(--accent-primary); padding: 10px; border-radius: 4px; line-height:1.5;">
+        🌸 <strong>別擔心！這只是一個專屬您的個人日記本</strong><br>
+        本程式是「無伺服器、零資料庫」設計，絕不會收集您的個人隱私或照片。您記錄的所有照片和日記，都會原封不動存在您自己的 Google 雲端硬碟裡，只有您自己看得到，請安心使用！
+      </div>
+
+      <div>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-key"></i> 第一步：初次使用先給「鑰匙」</h4>
+        <p>第一次打開網頁時，請點選最上方的<strong>【第一次使用請先輸入 Client ID】</strong>按鈕，將開發人員給您的金鑰（用戶端 ID）貼進去並儲存。這就像是幫日記本鎖上專屬您的安全鎖扣。</p>
+      </div>
+
+      <div>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-brands fa-google"></i> 第二步：Google 帳戶登入</h4>
+        <p>點選<strong>【使用 Google 帳戶登入】</strong>按鈕，選取您的 Gmail 帳號並允許授權。手札就會自動在您的 Google 雲端硬碟裡建立一個名為 <code>MyTravelJournal</code> 的隱私資料夾，用來同步您的日記檔案。</p>
+      </div>
+
+      <div>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-folder-plus"></i> 第三步：建立新旅程</h4>
+        <p>登入成功後，點選畫面右下角的<strong>【大加號 +】</strong>按鈕，輸入您的旅程名稱（例如：北海道之旅），就像是拿出一本嶄新的空白筆記本準備書寫。</p>
+      </div>
+
+      <div>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-map-pin"></i> 第四步：新增景點與魔術照片</h4>
+        <p>點進旅程後，點選右下角<strong>【箭頭發送紐】</strong>即可開始記錄新景點：</p>
+        <ul style="padding-left:18px; margin-top:4px;">
+          <li><strong>神奇拍照上傳</strong>：系統會自動讀取照片的「拍照日期」與「GPS 拍照地點」，並自動填好名稱與地址，您完全不用手動打字！</li>
+          <li><strong>說說話記錄感受</strong>：點選麥克風按鈕對著手機說話，系統會自動把您的聲音變成文字，省去繁瑣的手機打字時間！</li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-file-export"></i> 第五步：分享成果給親友</h4>
+        <p>點選旅程右上角的<strong>【匯出】</strong>按鈕，選擇您喜歡的視覺主題（如：青春、療癒放空）與自動搭配的背景輕音樂，系統會產生一個精美的單網頁。您可以直接將網頁檔案傳送到 LINE 群組分享給親朋好友，讓他們聽著輕音樂欣賞您的旅遊足跡！</p>
+      </div>
+
+      <div>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-trash-can"></i> 其他功能：調整順序與刪除</h4>
+        <p>如果景點順序不對，點選<strong>【調整順序】</strong>即可用手指上下拖曳更改；如果不小心寫錯，可以在首頁卡片右上角點選<strong>【紅色垃圾桶】</strong>將整本行程刪除。</p>
+      </div>
+
+      <div style="text-align:center; margin-top:12px; margin-bottom: 4px;">
+        <button class="btn btn-primary" onclick="hideModal()" style="width:100%;">我知道了，開始體驗！</button>
       </div>
     </div>
   `);
