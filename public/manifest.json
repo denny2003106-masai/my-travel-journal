@@ -1,6 +1,6 @@
 {
-  "name": "旅跡手札 - Travel Journal PWA",
-  "short_name": "旅跡手札",
+  "name": "旅遊手札 - Travel Journal PWA",
+  "short_name": "旅遊手札",
   "description": "一個免資料庫、儲存於個人 Google 雲端硬碟的語音相片旅遊手札",
   "start_url": "/",
   "display": "standalone",

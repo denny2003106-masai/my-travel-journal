@@ -131,7 +131,7 @@ function renderOnboardingView() {
         <div class="logo-animation">
           <i class="fa-solid fa-map-location-dot" style="color: #0b0914;"></i>
         </div>
-        <h2 class="onboarding-title">旅跡手札</h2>
+        <h2 class="onboarding-title">旅遊手札</h2>
         <p class="onboarding-desc">您專屬的無伺服器、零資料庫相片與語音手札。資料 100% 儲存在您自己的 Google 雲端硬碟中，安全無虞。</p>
         
         <div class="features-list">
@@ -205,7 +205,7 @@ function renderDashboardView() {
   const container = document.getElementById('view-container');
   container.innerHTML = `
     <header>
-      <h1>旅跡手札</h1>
+      <h1>旅遊手札</h1>
       <div class="header-actions">
         <button class="btn btn-icon" onclick="window.toggleThemeGlobal()" title="切換主題"><i class="fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}"></i></button>
         <button class="btn btn-icon" id="btn-dashboard-manual" title="使用說明書"><i class="fa-regular fa-compass"></i></button>
@@ -1632,9 +1632,9 @@ function showPinToDesktopModal() {
           <li>點選右上角的 **「+」** 按鈕以新增一個捷徑。</li>
           <li>點選中間的 **「加入動作」**，在搜尋框輸入 <code style="background:rgba(255,255,255,0.08); padding:2px 4px; border-radius:4px;">打開 URL</code>，並在搜尋結果中選取該動作。</li>
           <li>點選動作中的 'URL' 輸入框，貼入本手札網址：<br><code style="background:rgba(255,255,255,0.08); padding:2px 4px; border-radius:4px; font-size:0.75rem; word-break:break-all;">https://my-travel-journal-dusky.vercel.app/</code></li>
-          <li>點選上方捷徑名稱，選取 **「重新命名」**，輸入 '旅遊手札'。</li>
-          <li>點選名稱旁邊的箭頭（或下方分享按鈕），選取 **「加入主畫面」**。</li>
-          <li>您可以點選下方的圖標，拍照或從相簿選擇一張您喜歡的相片作為手札圖標（Icon），最後點選右上角的 **「新增」** 即可！</li>
+          <li>點選上方捷徑名稱，選取 **「重新命名」**，輸入 '旅遊手札'，並點選「完成」儲存捷徑。</li>
+          <li>回到所有捷徑畫面，長按剛剛做好的捷徑，選擇 **「分享」➔「加入主畫面」**。</li>
+          <li>您可以點選下方的圖標，拍照或從相簿選擇一張您喜歡的相片作為手札圖標（Icon），最後點選右上角的「新增」即可！</li>
         </ol>
       </div>
 
