@@ -1518,7 +1518,7 @@ function showSettingsModal() {
  */
 function showClientIdHelpModal() {
   showModal('如何獲取 Google API Client ID', `
-    <div style="font-size:0.85rem; line-height:1.6; display:flex; flex-direction:column; gap:12px; color:var(--text-primary);">
+    <div style="font-size:0.85rem; line-height:1.6; display:flex; flex-direction:column; gap:12px; color:var(--text-primary); text-align: left;">
       <p>請跟著以下簡單步驟獲取您個人專屬的 Google Client ID，以保護您的隱私：</p>
       <ol style="padding-left:20px; display:flex; flex-direction:column; gap:8px;">
         <li>前往並登入 <a href="https://console.cloud.google.com/" target="_blank" style="color:var(--accent-primary); text-decoration:underline;">Google Cloud Console 平台</a>。</li>
@@ -1528,8 +1528,7 @@ function showClientIdHelpModal() {
         <li>應用程式類型選擇「網頁應用程式」。</li>
         <li>在「已授權的 JavaScript 來源」中加入您的網址：
           <ul style="padding-left:16px; margin-top:4px;">
-            <li>本地測試：<code>http://localhost:5173</code></li>
-            <li>雲端部署：例如 <code>https://your-name.vercel.app</code> (尾端不要加斜線)</li>
+            <li>雲端部署：<code>https://my-travel-journal-dusky.vercel.app</code> (尾端不要加斜線)</li>
           </ul>
         </li>
         <li>點選建立，您便能複製所產生的「用戶端 ID (Client ID)」，貼回手札的設定欄位中即可！</li>
@@ -1924,7 +1923,7 @@ function showErrorToast(msg) {
   
   setTimeout(() => {
     toast.style.transform = 'translateX(-50%) translateY(100px)';
-  }, 3000);
+  }, 5000);
 }
 
 function showModal(title, contentHtml) {
