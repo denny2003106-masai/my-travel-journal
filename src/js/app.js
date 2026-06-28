@@ -63,6 +63,21 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     );
   }, 1000);
+
+  // 監聽視窗重新獲得焦點：防止登入彈出視窗關閉或取消後 loader 狀態卡死
+  window.addEventListener('focus', () => {
+    const loaderText = document.getElementById('loader-text');
+    const fullLoader = document.getElementById('full-loader');
+    if (fullLoader && fullLoader.style.display === 'flex' && loaderText && loaderText.innerText.includes('正在登入 Google')) {
+      // 延遲 1.5 秒以避免與正常登入成功的回呼產生 race condition 衝突
+      setTimeout(() => {
+        if (fullLoader.style.display === 'flex' && loaderText.innerText.includes('正在登入 Google') && !isTokenValid()) {
+          hideLoader();
+          showErrorToast('已取消登入或登入視窗已關閉，返回起始畫面');
+        }
+      }, 1500);
+    }
+  });
 });
 
 /* ==========================================================================
@@ -151,12 +166,16 @@ function renderOnboardingView() {
         </div>
 
         <div style="width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px;">
+          <button id="btn-open-settings" class="btn btn-secondary" style="padding: 12px; font-size: 0.9rem; width: 100%;">
+            <i class="fa-solid fa-key"></i> 第一次使用請先輸入 Client ID
+          </button>
+
           <button id="btn-login" class="btn btn-primary" style="padding: 14px 20px; font-size: 1rem; width: 100%;">
             <i class="fa-brands fa-google"></i> 使用 Google 帳戶登入
           </button>
           
-          <button id="btn-open-settings" class="btn btn-secondary" style="padding: 12px; font-size: 0.9rem; width: 100%;">
-            <i class="fa-solid fa-gears"></i> 進階設定 (自訂 Client ID)
+          <button id="btn-help-client-id" class="btn btn-secondary" style="padding: 10px; font-size: 0.85rem; width: 100%; margin-top: 8px; background: rgba(255,255,255,0.05); border: 1px dashed var(--border-glass);">
+            <i class="fa-regular fa-circle-question"></i> 如何查詢 Client ID？
           </button>
         </div>
       </div>
@@ -166,6 +185,7 @@ function renderOnboardingView() {
   // 綁定事件
   document.getElementById('btn-login').addEventListener('click', handleLogin);
   document.getElementById('btn-open-settings').addEventListener('click', showSettingsModal);
+  document.getElementById('btn-help-client-id').addEventListener('click', showClientIdHelpModal);
 }
 
 /**
@@ -1459,9 +1479,7 @@ async function handleExportAction(format) {
    ========================================================================== */
 
 function showSettingsModal() {
-  const overlay = document.getElementById('modal-overlay');
-  
-  showModal('系統參數設定', `
+  showModal('自訂 Client ID 設定', `
     <div style="display:flex; flex-direction:column; gap:16px;">
       <!-- Google Client ID -->
       <div class="form-group">
@@ -1472,18 +1490,6 @@ function showSettingsModal() {
         </span>
       </div>
 
-      <!-- Unsplash Key -->
-      <div class="form-group">
-        <label for="settings-unsplash-key">Unsplash Access Key (選填，模仿照搜尋)</label>
-        <input type="text" id="settings-unsplash-key" class="form-control" value="${searchKeys.unsplashKey}" placeholder="輸入您的 Unsplash Access Key" />
-      </div>
-
-      <!-- Flickr Key -->
-      <div class="form-group">
-        <label for="settings-flickr-key">Flickr API Key (選填，模仿照搜尋)</label>
-        <input type="text" id="settings-flickr-key" class="form-control" value="${searchKeys.flickrKey}" placeholder="輸入您的 Flickr API Key" />
-      </div>
-
       <div style="display:flex; gap:12px; margin-top:16px;">
         <button class="btn btn-secondary" onclick="hideModal()" style="flex:1;">取消</button>
         <button class="btn btn-primary" id="btn-save-settings" style="flex:1;">儲存設定</button>
@@ -1492,14 +1498,10 @@ function showSettingsModal() {
   `);
 
   document.getElementById('btn-save-settings').addEventListener('click', () => {
-    const newClientId = document.getElementById('settings-client-id').value;
-    const newUnsplash = document.getElementById('settings-unsplash-key').value;
-    const newFlickr = document.getElementById('settings-flickr-key').value;
-
+    const newClientId = document.getElementById('settings-client-id').value.trim();
     const clientIdChanged = newClientId !== authState.clientId;
 
     updateClientId(newClientId);
-    updateSearchKeys(newFlickr, newUnsplash);
 
     hideModal();
     showSuccessToast('設定已成功儲存！');
@@ -1509,6 +1511,34 @@ function showSettingsModal() {
       handleLogout();
     }
   });
+}
+
+/**
+ * 彈出如何查詢 Client ID 的教學說明
+ */
+function showClientIdHelpModal() {
+  showModal('如何獲取 Google API Client ID', `
+    <div style="font-size:0.85rem; line-height:1.6; display:flex; flex-direction:column; gap:12px; color:var(--text-primary);">
+      <p>請跟著以下簡單步驟獲取您個人專屬的 Google Client ID，以保護您的隱私：</p>
+      <ol style="padding-left:20px; display:flex; flex-direction:column; gap:8px;">
+        <li>前往並登入 <a href="https://console.cloud.google.com/" target="_blank" style="color:var(--accent-primary); text-decoration:underline;">Google Cloud Console 平台</a>。</li>
+        <li>建立新專案，或選取已有專案。</li>
+        <li>在左側選單中，選取「API 和服務」 ➔ 「OAuth 同意畫面」，設定為「外部 (External)」，並在測試用戶中新增您自己的 Gmail。</li>
+        <li>點選「憑證」 ➔ 「建立憑證」 ➔ 「OAuth 用戶端 ID」。</li>
+        <li>應用程式類型選擇「網頁應用程式」。</li>
+        <li>在「已授權的 JavaScript 來源」中加入您的網址：
+          <ul style="padding-left:16px; margin-top:4px;">
+            <li>本地測試：<code>http://localhost:5173</code></li>
+            <li>雲端部署：例如 <code>https://your-name.vercel.app</code> (尾端不要加斜線)</li>
+          </ul>
+        </li>
+        <li>點選建立，您便能複製所產生的「用戶端 ID (Client ID)」，貼回手札的設定欄位中即可！</li>
+      </ol>
+      <div style="display:flex; justify-content:center; margin-top:12px;">
+        <button class="btn btn-primary" onclick="hideModal()" style="width:100%;">我知道了</button>
+      </div>
+    </div>
+  `);
 }
 
 /* ==========================================================================

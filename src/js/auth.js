@@ -3,7 +3,7 @@
    ========================================================================== */
 
 // 預設的 Google Client ID (使用者可以在設定中自訂，若是自己託管)
-const DEFAULT_CLIENT_ID = '404693681965-ofbp1tr14kcetr86jv9jp5ce5vtijm8j.apps.googleusercontent.com'; // 使用者測試用 Client ID
+const DEFAULT_CLIENT_ID = '693681965-ofbp1tr14kcetr86jv9jp5ce5vtijm8j.apps.googleusercontent.com'; // 使用者測試用 Client ID
 
 const savedClientId = localStorage.getItem('tj_client_id');
 const oldDummyId = '953685043825-p322qsnv86i3i2ch0qplv6tndg9omd20.apps.googleusercontent.com';
