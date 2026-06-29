@@ -1394,12 +1394,12 @@ function showExportModal(preselectedTripId = null) {
       <div class="form-group" id="group-export-theme" style="border-top:1px solid var(--border-glass); padding-top:12px; margin-top:8px;">
         <label for="export-select-theme">2. 成果網頁風格與音樂主題：</label>
         <select id="export-select-theme" class="form-control">
-          <option value="youth">青春 (活力流行背景音樂)</option>
-          <option value="hotblood">熱血 (動感搖滾背景音樂)</option>
-          <option value="natural">自然 (森林鳥鳴與木吉他音樂)</option>
-          <option value="foodie">美食 (輕快爵士/Bossa Nova)</option>
-          <option value="shopping">SHOPPING (時尚動感流行音樂)</option>
-          <option value="healing">療癒放空 (鋼琴與 Lofi 背景音樂)</option>
+          <option value="youth">青春 (德布西：《月光》)</option>
+          <option value="hotblood">熱血 (蕭邦：《夜曲 Op.9 No.2》)</option>
+          <option value="natural">自然 (蕭邦：《雨滴前奏曲》)</option>
+          <option value="foodie">美食 (巴哈：《郭德堡變奏曲 - 詠嘆調》)</option>
+          <option value="shopping">SHOPPING (貝多芬：《月光奏鳴曲 - 第一樂章》)</option>
+          <option value="healing">療癒放空 (薩提：《第一號琴諾佩第》)</option>
         </select>
       </div>
 
