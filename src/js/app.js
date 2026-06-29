@@ -31,6 +31,7 @@ let activeMediaRecorderState = 'idle'; // 'idle' | 'recording'
 let theme = localStorage.getItem('tj_theme') || 'dark';
 let isAdjustingOrder = false;
 let draggedItemIndex = null;
+let activeToastTimeout = null;
 
 // 頁面加載時註冊 Service Worker
 if ('serviceWorker' in navigator) {
@@ -94,7 +95,7 @@ function renderAppShell() {
     </div>
 
     <!-- Toast 訊息通知 -->
-    <div id="toast-msg" style="position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--accent-secondary); color: white; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-weight: 500; pointer-events: none; text-align: center;"></div>
+    <div id="toast-msg" style="position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--accent-secondary); color: white; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease; opacity: 0; font-weight: 500; pointer-events: none; text-align: center;"></div>
 
     <!-- 主頁面容器 -->
     <div id="view-container" style="width: 100%; height: 100%; display: flex; flex-direction: column;"></div>
@@ -1056,6 +1057,9 @@ async function handlePhotoUpload(e) {
 
   hideLoader();
   renderEditorPhotos();
+  if (files.length > 0) {
+    showSuccessToast('照片上傳成功！');
+  }
 }
 
 /**
@@ -2056,10 +2060,15 @@ function showSuccessToast(msg) {
   toast.innerText = msg;
   toast.style.background = 'var(--success)';
   toast.style.transform = 'translateX(-50%) translateY(0)';
+  toast.style.opacity = '1';
   
-  setTimeout(() => {
+  if (activeToastTimeout) clearTimeout(activeToastTimeout);
+  
+  activeToastTimeout = setTimeout(() => {
     toast.style.transform = 'translateX(-50%) translateY(100px)';
-  }, 2500);
+    toast.style.opacity = '0';
+    activeToastTimeout = null;
+  }, 3000); // 修正成過三秒鐘之後會自動消失
 }
 
 function showErrorToast(msg) {
@@ -2067,10 +2076,15 @@ function showErrorToast(msg) {
   toast.innerText = msg;
   toast.style.background = 'var(--danger)';
   toast.style.transform = 'translateX(-50%) translateY(0)';
+  toast.style.opacity = '1';
   
-  setTimeout(() => {
+  if (activeToastTimeout) clearTimeout(activeToastTimeout);
+  
+  activeToastTimeout = setTimeout(() => {
     toast.style.transform = 'translateX(-50%) translateY(100px)';
-  }, 5000);
+    toast.style.opacity = '0';
+    activeToastTimeout = null;
+  }, 3000); // 修正成過三秒鐘之後會自動消失
 }
 
 function showModal(title, contentHtml) {

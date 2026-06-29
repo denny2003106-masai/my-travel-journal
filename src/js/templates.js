@@ -28,7 +28,7 @@ export function generateSinglePageHtml(trip, spots, theme = 'youth') {
       textSecondary: '#94a3b8',
       accentColor: '#06b6d4',      /* Cyan */
       accentPurple: '#ec4899',     /* Pink */
-      bgmUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e0/Clair_de_Lune_%28Debussy%29_Suite_bergamasque.mp3' /* 德布西：月光 (柔美鋼琴) */
+      bgmUrl: 'https://archive.org/download/ClaudeDebussyClairDeLuneFromTwilight/Claude%20Debussy%20-%20Clair%20de%20lune%20%28From%20Twilight%29.mp3' /* 德布西：月光 (柔美鋼琴) */
     },
     hotblood: {
       name: '熱血',
@@ -40,7 +40,7 @@ export function generateSinglePageHtml(trip, spots, theme = 'youth') {
       textSecondary: '#fda4af',
       accentColor: '#f43f5e',      /* Rose */
       accentPurple: '#f97316',     /* Orange */
-      bgmUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/01/Chopin_Nocturne_Op_9_No_2.mp3' /* 蕭邦：夜曲 Op.9 No.2 (優雅柔和) */
+      bgmUrl: 'https://archive.org/download/Complete_Chopin_Nocturnes/Chopin_Nocturne_No.04_in_EfM_Op.9_2_SDRodrian.mp3' /* 蕭邦：夜曲 Op.9 No.2 (優雅柔和) */
     },
     natural: {
       name: '自然',
@@ -52,7 +52,7 @@ export function generateSinglePageHtml(trip, spots, theme = 'youth') {
       textSecondary: '#a7f3d0',
       accentColor: '#10b981',      /* Emerald Green */
       accentPurple: '#84cc16',     /* Lime */
-      bgmUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/87/Chopin_Prelude_No._15_in_D-flat_Major%2C_Op._28.mp3' /* 蕭邦：雨滴前奏曲 (自然雨滴感) */
+      bgmUrl: 'https://archive.org/download/musopen-chopin/Prelude%20Op.%2028%20no.%2015.mp3' /* 蕭邦：雨滴前奏曲 (自然雨滴感) */
     },
     foodie: {
       name: '美食',
@@ -64,7 +64,7 @@ export function generateSinglePageHtml(trip, spots, theme = 'youth') {
       textSecondary: '#fde68a',
       accentColor: '#f59e0b',      /* Amber */
       accentPurple: '#f43f5e',     /* Coral Rose */
-      bgmUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/52/Goldberg_Variations_Aria.mp3' /* 巴哈：郭德堡變奏曲-詠嘆調 (平靜溫暖) */
+      bgmUrl: 'https://archive.org/download/OpenGoldbergVariations/Kimiko%20Ishizaka%20-%20J.S.%20Bach-%20-Open-%20Goldberg%20Variations%2C%20BWV%20988%20%28Piano%29%20-%2001%20Aria.mp3' /* 巴哈：郭德堡變奏曲-詠嘆調 (平靜溫暖) */
     },
     shopping: {
       name: 'SHOPPING',
@@ -76,7 +76,7 @@ export function generateSinglePageHtml(trip, spots, theme = 'youth') {
       textSecondary: '#e9d5ff',
       accentColor: '#a855f7',      /* Purple */
       accentPurple: '#d946ef',     /* Fuchsia */
-      bgmUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c5/Moonlight_Sonata_Adagio_Sostenuto.mp3' /* 貝多芬：月光奏鳴曲第一樂章 (神祕沉靜) */
+      bgmUrl: 'https://archive.org/download/BeethovenPianoSonataNo.14moonlightrubinstein/04Beethoven_PianoSonata14InCSharpMinorOp.27_2_moonlight_-1.AdagioSostenuto.mp3' /* 貝多芬：月光奏鳴曲第一樂章 (神祕沉靜) */
     },
     healing: {
       name: '療癒放空',
@@ -88,7 +88,7 @@ export function generateSinglePageHtml(trip, spots, theme = 'youth') {
       textSecondary: '#bfdbfe',
       accentColor: '#60a5fa',      /* Soft Blue */
       accentPurple: '#c084fc',     /* Lavender */
-      bgmUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/ca/Satie_Gymnopedie_No_1.mp3' /* 薩提：第一號琴諾佩第 (最放鬆療癒) */
+      bgmUrl: 'https://archive.org/download/GymnopedieNo.1/Gymnopedie%20No.1.mp3' /* 薩提：第一號琴諾佩第 (最放鬆療癒) */
     }
   };
 
