@@ -113,6 +113,69 @@ export function exportToHtmlFile(trip, spots, theme = 'youth') {
 }
 
 /**
+ * 產生 HTML 成果網頁並叫起瀏覽器列印/儲存為 PDF 檔案
+ */
+export function exportToPdf(trip, spots, theme = 'youth') {
+  const htmlString = generateSinglePageHtml(trip, spots, theme);
+  
+  // 注入列印樣式：隱藏音樂控制元件、優化字體大小與分頁防截斷
+  const printStyle = `
+    <style>
+      @media print {
+        #music-control-btn, .music-disc-container, .cd-disc, .cd-arm { display: none !important; }
+        body { background-color: var(--bg-primary) !important; color: var(--text-primary) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .journal-container { max-width: 100% !important; margin: 0 !important; box-shadow: none !important; }
+        .timeline-card { page-break-inside: avoid; break-inside: avoid; margin-bottom: 24px !important; }
+      }
+    </style>
+  `;
+  
+  let styledHtml = htmlString;
+  if (htmlString.includes('</head>')) {
+    styledHtml = htmlString.replace('</head>', printStyle + '</head>');
+  } else {
+    styledHtml = printStyle + htmlString;
+  }
+
+  // 1. 開啟新視窗
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    throw new Error('無法開啟列印視窗，請檢查您的瀏覽器是否封鎖了快顯視窗！');
+  }
+
+  // 2. 寫入 HTML 內容
+  printWindow.document.open();
+  printWindow.document.write(styledHtml);
+  printWindow.document.close();
+
+  // 3. 等待圖片加載完畢後觸發列印
+  const triggerPrint = () => {
+    const imgs = printWindow.document.querySelectorAll('img');
+    const promises = Array.from(imgs).map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise(resolve => {
+        img.onload = resolve;
+        img.onerror = resolve;
+      });
+    });
+
+    Promise.all(promises).then(() => {
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+      }, 800); // 給予足夠的渲染緩衝時間
+    });
+  };
+
+  // 如果視窗已載入直接觸發，否則監聽 load 事件
+  if (printWindow.document.readyState === 'complete') {
+    triggerPrint();
+  } else {
+    printWindow.addEventListener('load', triggerPrint);
+  }
+}
+
+/**
  * 匯出並下載打包的 Markdown 壓縮檔案 (包含 .md 文件與照片子資料夾)
  * @param {Object} trip 行程資料
  * @param {Array<Object>} spots 景點清單

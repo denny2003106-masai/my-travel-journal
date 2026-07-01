@@ -18,7 +18,7 @@ import {
 import { getPhotoLocation, getPlaceNameFromGPS, compressImage, clusterPhotos, selectDiversePhotos } from './gps.js';
 import { startRecording, stopRecording, isSpeechSupported } from './audio.js';
 import { searchInspirationPhotos, searchKeys, updateSearchKeys } from './search.js';
-import { filterJournalData, exportToHtmlFile, exportToMarkdownZip } from './export.js';
+import { filterJournalData, exportToHtmlFile, exportToMarkdownZip, exportToPdf } from './export.js';
 
 // 全域狀態
 let tripsData = { trips: [] };
@@ -1425,6 +1425,10 @@ function showExportModal(preselectedTripId = null) {
           <button class="btn btn-primary" id="btn-do-export-html">
             <i class="fa-solid fa-code"></i> 產生個人成果網頁 (HTML 單頁，適合嵌入 Google 協作平台)
           </button>
+
+          <button class="btn btn-secondary" id="btn-do-export-pdf" style="background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; border: none;">
+            <i class="fa-solid fa-file-pdf"></i> 匯出為 PDF 檔案 (適合列印/保存電子檔)
+          </button>
           
           <button class="btn btn-secondary" id="btn-do-export-md">
             <i class="fa-solid fa-file-zipper"></i> 匯出為 Markdown 打包檔 (.zip)
@@ -1446,6 +1450,7 @@ function showExportModal(preselectedTripId = null) {
   });
 
   document.getElementById('btn-do-export-html').addEventListener('click', () => handleExportAction('html'));
+  document.getElementById('btn-do-export-pdf').addEventListener('click', () => handleExportAction('pdf'));
   document.getElementById('btn-do-export-md').addEventListener('click', () => handleExportAction('md'));
 }
 
@@ -1491,6 +1496,16 @@ async function handleExportAction(format) {
       showSuccessToast('網頁已成功生成並開始下載！');
     } catch (e) {
       showErrorToast(`網頁生成失敗: ${e.message}`);
+    }
+    hideLoader();
+  } else if (format === 'pdf') {
+    showLoader('正在準備產生 PDF 列印預覽...');
+    try {
+      const themeVal = document.getElementById('export-select-theme').value;
+      exportToPdf(mainTrip, allSpots, themeVal);
+      showSuccessToast('已成功開起 PDF 列印預覽，請於列印視窗中選擇「另存為 PDF」！');
+    } catch (e) {
+      showErrorToast(`PDF 產生失敗: ${e.message}`);
     }
     hideLoader();
   } else {
