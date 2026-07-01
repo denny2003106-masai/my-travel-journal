@@ -1586,22 +1586,17 @@ function showUserManualModal() {
       </div>
 
       <div>
-        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-key"></i> 第一步：初次使用先給「鑰匙」</h4>
-        <p>第一次打開網頁時，請點選最上方的<strong>【第一次使用請先輸入 Client ID】</strong>按鈕，將開發人員給您的金鑰（用戶端 ID）貼進去並儲存。這就像是幫日記本鎖上專屬您的安全鎖扣。</p>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-brands fa-google"></i> 第一步：Google 帳戶登入</h4>
+        <p>直接點選<strong>【使用 Google 帳戶登入】</strong>按鈕，選取您的 Gmail 帳號並允許授權。手札就會自動在您的 Google 雲端硬碟裡建立一個名為 <code>MyTravelJournal</code> 的隱私資料夾，用來同步您的日記檔案。系統已內置預設金鑰，初學者完全不需要做任何繁雜設定！</p>
       </div>
 
       <div>
-        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-brands fa-google"></i> 第二步：Google 帳戶登入</h4>
-        <p>點選<strong>【使用 Google 帳戶登入】</strong>按鈕，選取您的 Gmail 帳號並允許授權。手札就會自動在您的 Google 雲端硬碟裡建立一個名為 <code>MyTravelJournal</code> 的隱私資料夾，用來同步您的日記檔案。</p>
-      </div>
-
-      <div>
-        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-folder-plus"></i> 第三步：建立新旅程</h4>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-folder-plus"></i> 第二步：建立新旅程</h4>
         <p>登入成功後，點選畫面右下角的<strong>【大加號 +】</strong>按鈕，輸入您的旅程名稱（例如：北海道之旅），就像是拿出一本嶄新的空白筆記本準備書寫。</p>
       </div>
 
       <div>
-        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-map-pin"></i> 第四步：新增景點與魔術照片</h4>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-map-pin"></i> 第三步：新增景點與魔術照片</h4>
         <p>點進旅程後，點選右下角<strong>【箭頭發送紐】</strong>即可開始記錄新景點：</p>
         <ul style="padding-left:18px; margin-top:4px;">
           <li><strong>神奇拍照上傳</strong>：系統會自動讀取照片的「拍照日期」與「GPS 拍照地點」，並自動填好名稱與地址，您完全不用手動打字！</li>
@@ -1610,13 +1605,13 @@ function showUserManualModal() {
       </div>
 
       <div>
-        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-file-export"></i> 第五步：分享成果給親友</h4>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-file-export"></i> 第四步：分享成果給親友</h4>
         <p>點選旅程右上角的<strong>【匯出】</strong>按鈕，選擇您喜歡的視覺主題（如：青春、療癒放空）與自動搭配的背景輕音樂，系統會產生一個精美的單網頁。您可以直接將網頁檔案傳送到 LINE 群組分享給親朋好友，讓他們聽著輕音樂欣賞您的旅遊足跡！</p>
       </div>
 
       <div>
-        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-trash-can"></i> 其他功能：調整順序與刪除</h4>
-        <p>如果景點順序不對，點選<strong>【調整順序】</strong>即可用手指上下拖曳更改；如果不小心寫錯，可以在首頁卡片右上角點選<strong>【紅色垃圾桶】</strong>將整本行程刪除。</p>
+        <h4 style="color:var(--accent-primary); margin-bottom:4px;"><i class="fa-solid fa-trash-can"></i> 其他功能與備註</h4>
+        <p>如果景點順序不對，點選<strong>【調整順序】</strong>即可用手指上下拖曳更改；如果不小心寫錯，可以在首頁卡片右上角點選<strong>【紅色垃圾桶】</strong>將整本行程刪除。若您想使用自己註冊的 Google Cloud 用戶端憑證，可點選起始畫面最下方的<strong>【進階設定 (自訂 Client ID)】</strong>腳註連結進行更換。</p>
       </div>
 
       <div style="text-align:center; margin-top:12px; margin-bottom: 4px;">
