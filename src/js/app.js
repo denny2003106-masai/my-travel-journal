@@ -1499,15 +1499,24 @@ async function handleExportAction(format) {
     }
     hideLoader();
   } else if (format === 'pdf') {
-    showLoader('正在準備產生 PDF 列印預覽...');
-    try {
-      const themeVal = document.getElementById('export-select-theme').value;
-      exportToPdf(mainTrip, allSpots, themeVal);
-      showSuccessToast('已成功開起 PDF 列印預覽，請於列印視窗中選擇「另存為 PDF」！');
-    } catch (e) {
-      showErrorToast(`PDF 產生失敗: ${e.message}`);
-    }
-    hideLoader();
+    showLoader('正在準備產生 PDF 下載檔...');
+    const themeVal = document.getElementById('export-select-theme').value;
+    exportToPdf(
+      mainTrip, 
+      allSpots, 
+      themeVal,
+      (status) => {
+        document.getElementById('loader-text').innerText = status;
+      },
+      () => {
+        hideLoader();
+        showSuccessToast('PDF 下載已成功開始！');
+      },
+      (err) => {
+        hideLoader();
+        showErrorToast(`PDF 產生失敗: ${err.message}`);
+      }
+    );
   } else {
     showLoader('正在下載相片並打包 Markdown Zip 壓縮檔中...');
     try {
