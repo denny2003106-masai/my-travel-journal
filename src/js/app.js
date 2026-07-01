@@ -33,12 +33,29 @@ let isAdjustingOrder = false;
 let draggedItemIndex = null;
 let activeToastTimeout = null;
 
-// 頁面加載時註冊 Service Worker
+// 頁面加載時註冊 Service Worker 且支援更新自動重整
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js').catch(err => {
-      console.warn('ServiceWorker 註冊失敗: ', err);
-    });
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('偵測到新版本【旅遊手札】，即將自動重新整理網頁！');
+                showSuccessToast('系統已下載最新更新，即將為您重新整理網頁...');
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
+              }
+            });
+          }
+        });
+      })
+      .catch(err => {
+        console.warn('ServiceWorker 註冊失敗: ', err);
+      });
   });
 }
 
@@ -166,12 +183,8 @@ function renderOnboardingView() {
           </div>
         </div>
 
-        <div style="width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px;">
-          <button id="btn-open-settings" class="btn btn-secondary" style="padding: 12px; font-size: 0.9rem; width: 100%;">
-            <i class="fa-solid fa-key"></i> 第一次使用請先輸入 Client ID
-          </button>
-
-          <button id="btn-login" class="btn btn-primary" style="padding: 14px 20px; font-size: 1rem; width: 100%;">
+        <div style="width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; align-items: center;">
+          <button id="btn-login" class="btn btn-primary" style="padding: 14px 20px; font-size: 1.05rem; width: 100%;">
             <i class="fa-brands fa-google"></i> 使用 Google 帳戶登入
           </button>
           
@@ -186,6 +199,10 @@ function renderOnboardingView() {
           <button id="btn-help-pin-desktop" class="btn btn-secondary" style="padding: 10px; font-size: 0.85rem; width: 100%; margin-top: 4px; background: rgba(255,255,255,0.05); border: 1px dashed var(--border-glass);">
             <i class="fa-solid fa-mobile-screen-button"></i> 📌 釘選手機桌面教學 (像 App 一樣使用)
           </button>
+
+          <span id="btn-open-settings" style="font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; text-decoration: underline; opacity: 0.5; margin-top: 16px; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=0.5">
+            進階設定 (自訂 Client ID)
+          </span>
         </div>
       </div>
     </div>
