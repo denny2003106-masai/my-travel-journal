@@ -172,45 +172,67 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
   loadLibrary((html2pdf) => {
     if (onStatusUpdate) onStatusUpdate('正在下載相片與資源中...');
 
-    // 4. 等待所有圖片加載完畢
-    const imgs = iframeDoc.querySelectorAll('img');
-    const promises = Array.from(imgs).map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise(resolve => {
-        img.onload = resolve;
-        img.onerror = resolve; // 圖片載入失敗也繼續，防卡死
-      });
-    });
-
-    Promise.all(promises).then(() => {
-      if (onStatusUpdate) onStatusUpdate('相片載入完成，正在渲染 PDF 排版檔...');
+    // 給予瀏覽器微小時間開始載入 iframe 中的資源
+    setTimeout(() => {
+      const imgs = iframeDoc.querySelectorAll('img');
       
-      setTimeout(() => {
-        const opt = {
-          margin:       [10, 10, 10, 10], // A4 頁邊距 (單位: mm)
-          filename:     `${trip.name || 'travel-journal'}_旅遊手札.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { 
-            scale: 2, 
-            useCORS: true, 
-            logging: false,
-            allowTaint: true
-          },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak:    { mode: ['css', 'legacy'] }
-        };
+      const generatePDF = () => {
+        if (onStatusUpdate) onStatusUpdate('相片載入完成，正在渲染 PDF 排版檔...');
+        
+        setTimeout(() => {
+          const opt = {
+            margin:       [10, 10, 10, 10], // A4 頁邊距 (單位: mm)
+            filename:     `${trip.name || 'travel-journal'}_旅遊手札.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { 
+              scale: 2, 
+              useCORS: true, 
+              logging: false,
+              allowTaint: true
+            },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['css', 'legacy'] }
+          };
 
-        if (onStatusUpdate) onStatusUpdate('相片排版完成，正在產生並下載 PDF...');
+          if (onStatusUpdate) onStatusUpdate('相片排版完成，正在產生並下載 PDF...');
 
-        html2pdf().set(opt).from(iframeDoc.body).save().then(() => {
-          document.body.removeChild(iframe);
-          if (onComplete) onComplete();
-        }).catch(err => {
-          document.body.removeChild(iframe);
-          if (onError) onError(err);
+          html2pdf().set(opt).from(iframeDoc.body).save().then(() => {
+            document.body.removeChild(iframe);
+            if (onComplete) onComplete();
+          }).catch(err => {
+            document.body.removeChild(iframe);
+            if (onError) onError(err);
+          });
+        }, 1200); // 給予足夠的繪圖緩衝時間
+      };
+
+      if (imgs.length === 0) {
+        generatePDF();
+        return;
+      }
+
+      // 等待所有圖片載入完畢，並附帶安全超時機制
+      const promises = Array.from(imgs).map(img => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        return new Promise(resolve => {
+          const timeout = setTimeout(() => {
+            console.warn('圖片加載超時安全閥啟動:', img.src);
+            resolve(); // 超時直接解析，防止卡死
+          }, 5000);
+
+          img.onload = () => {
+            clearTimeout(timeout);
+            resolve();
+          };
+          img.onerror = () => {
+            clearTimeout(timeout);
+            resolve();
+          };
         });
-      }, 1200); // 給予足夠的繪圖緩衝時間
-    });
+      });
+
+      Promise.all(promises).then(generatePDF);
+    }, 200);
   });
 }
 
