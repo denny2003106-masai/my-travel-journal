@@ -118,13 +118,64 @@ export function exportToHtmlFile(trip, spots, theme = 'youth') {
 export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null, onComplete = null, onError = null) {
   const htmlString = generateSinglePageHtml(trip, spots, theme);
   
-  // 注入 PDF 專屬樣式：隱藏音樂控制與 CD、調整外距與防折斷
+  // 注入 PDF 專屬樣式：隱藏音樂控制與 CD、強制背景為白色、文字改為暗色以利列印與導出
   const pdfStyle = `
     <style>
       #music-control-btn, .music-disc-container, .cd-disc, .cd-arm { display: none !important; }
-      body { background-color: var(--bg-primary) !important; color: var(--text-primary) !important; padding: 20px !important; }
-      .journal-container { max-width: 100% !important; margin: 0 !important; box-shadow: none !important; }
-      .timeline-card { page-break-inside: avoid; break-inside: avoid; margin-bottom: 24px !important; }
+      body {
+        background: #ffffff !important;
+        background-image: none !important;
+        color: #1e293b !important;
+        padding: 20px !important;
+      }
+      .journal-container {
+        max-width: 100% !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+      }
+      .timeline::before {
+        background-color: #cbd5e1 !important;
+      }
+      .spot-card {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+        color: #1e293b !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin-bottom: 24px !important;
+      }
+      .spot-title {
+        color: #0f172a !important;
+      }
+      .spot-desc, .photo-caption {
+        color: #334155 !important;
+      }
+      .spot-date, .spot-location {
+        color: #64748b !important;
+      }
+      .photo-card {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+      }
+      .audio-badge {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #64748b !important;
+      }
+      .voice-transcript {
+        background: #f1f5f9 !important;
+        border-left: 3px solid var(--accent-color) !important;
+        color: #475569 !important;
+      }
+      .journal-header h1 {
+        color: #0f172a !important;
+      }
+      .journal-header p {
+        color: #475569 !important;
+      }
     </style>
   `;
   
@@ -170,69 +221,109 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
   };
 
   loadLibrary((html2pdf) => {
-    if (onStatusUpdate) onStatusUpdate('正在下載相片與資源中...');
+    if (onStatusUpdate) onStatusUpdate('正在下載並轉換相片為本機 Data...');
 
-    // 給予瀏覽器微小時間開始載入 iframe 中的資源
-    setTimeout(() => {
+    // 4. 下載圖片並轉換為 Base64 Data URL (以徹底繞過 html2canvas 的 CORS 限制)
+    const convertImagesToBase64 = async () => {
       const imgs = iframeDoc.querySelectorAll('img');
-      
-      const generatePDF = () => {
-        if (onStatusUpdate) onStatusUpdate('相片載入完成，正在渲染 PDF 排版檔...');
+      if (imgs.length === 0) return;
+
+      const promises = Array.from(imgs).map(async (img) => {
+        const originalSrc = img.getAttribute('src');
+        if (!originalSrc || originalSrc.startsWith('data:')) return;
         
-        setTimeout(() => {
-          const opt = {
-            margin:       [10, 10, 10, 10], // A4 頁邊距 (單位: mm)
-            filename:     `${trip.name || 'travel-journal'}_旅遊手札.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { 
-              scale: 2, 
-              useCORS: true, 
-              logging: false,
-              allowTaint: true
-            },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak:    { mode: ['css', 'legacy'] }
-          };
-
-          if (onStatusUpdate) onStatusUpdate('相片排版完成，正在產生並下載 PDF...');
-
-          html2pdf().set(opt).from(iframeDoc.body).save().then(() => {
-            document.body.removeChild(iframe);
-            if (onComplete) onComplete();
-          }).catch(err => {
-            document.body.removeChild(iframe);
-            if (onError) onError(err);
+        try {
+          // 發起 CORS fetch 請求圖片二進位 blob
+          const res = await fetch(originalSrc);
+          if (!res.ok) throw new Error(`HTTP status ${res.status}`);
+          const blob = await res.blob();
+          
+          // 轉為 Data URL (Base64)
+          const base64Url = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
           });
-        }, 1200); // 給予足夠的繪圖緩衝時間
-      };
-
-      if (imgs.length === 0) {
-        generatePDF();
-        return;
-      }
-
-      // 等待所有圖片載入完畢，並附帶安全超時機制
-      const promises = Array.from(imgs).map(img => {
-        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-        return new Promise(resolve => {
-          const timeout = setTimeout(() => {
-            console.warn('圖片加載超時安全閥啟動:', img.src);
-            resolve(); // 超時直接解析，防止卡死
-          }, 5000);
-
-          img.onload = () => {
-            clearTimeout(timeout);
-            resolve();
-          };
-          img.onerror = () => {
-            clearTimeout(timeout);
-            resolve();
-          };
-        });
+          
+          img.src = base64Url;
+          console.log('相片成功轉換為 Base64:', originalSrc.substring(0, 50));
+        } catch (err) {
+          console.warn('相片轉換 Base64 失敗 (採用原 URL 回退):', originalSrc, err);
+        }
       });
 
-      Promise.all(promises).then(generatePDF);
-    }, 200);
+      // 限制 8 秒內必須全部跑完，防卡死
+      const timeoutPromise = new Promise(resolve => setTimeout(resolve, 8000));
+      await Promise.race([
+        Promise.all(promises),
+        timeoutPromise
+      ]);
+    };
+
+    convertImagesToBase64().then(() => {
+      // 給予瀏覽器微小時間開始載入 iframe 中的資源
+      setTimeout(() => {
+        const imgs = iframeDoc.querySelectorAll('img');
+        
+        const generatePDF = () => {
+          if (onStatusUpdate) onStatusUpdate('相片載入完成，正在渲染 PDF 排版檔...');
+          
+          setTimeout(() => {
+            const opt = {
+              margin:       [10, 10, 10, 10], // A4 頁邊距 (單位: mm)
+              filename:     `${trip.name || 'travel-journal'}_旅遊手札.pdf`,
+              image:        { type: 'jpeg', quality: 0.98 },
+              html2canvas:  { 
+                scale: 2, 
+                useCORS: true, 
+                logging: false,
+                allowTaint: true
+              },
+              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+              pagebreak:    { mode: ['css', 'legacy'] }
+            };
+
+            if (onStatusUpdate) onStatusUpdate('相片排版完成，正在產生並下載 PDF...');
+
+            html2pdf().set(opt).from(iframeDoc.body).save().then(() => {
+              document.body.removeChild(iframe);
+              if (onComplete) onComplete();
+            }).catch(err => {
+              document.body.removeChild(iframe);
+              if (onError) onError(err);
+            });
+          }, 1200); // 給予足夠的繪圖緩衝時間
+        };
+
+        if (imgs.length === 0) {
+          generatePDF();
+          return;
+        }
+
+        // 等待所有圖片載入完畢，並附帶安全超時機制
+        const promises = Array.from(imgs).map(img => {
+          if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+          return new Promise(resolve => {
+            const timeout = setTimeout(() => {
+              console.warn('圖片加載超時安全閥啟動:', img.src);
+              resolve(); // 超時直接解析，防止卡死
+            }, 5000);
+
+            img.onload = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            img.onerror = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+          });
+        });
+
+        Promise.all(promises).then(generatePDF);
+      }, 200);
+    });
   });
 }
 
