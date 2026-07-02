@@ -186,7 +186,7 @@ export function generateSinglePageHtml(trip, spots, theme = 'youth') {
           <div class="photo-card">
             ${!isAudioOnly ? `
               <div class="photo-img-wrapper">
-                <img src="${imgUrl}" alt="${photo.originalName || '照片'}" loading="lazy" onclick="openLightbox('${imgUrl}')" />
+                <img src="${imgUrl}" alt="${photo.originalName || '照片'}" loading="lazy" crossorigin="anonymous" onclick="openLightbox('${imgUrl}')" />
               </div>
             ` : ''}
             ${audioPlayHtml}
@@ -628,7 +628,7 @@ export function generateSinglePageHtml(trip, spots, theme = 'youth') {
   <!-- Lightbox -->
   <div class="lightbox" id="lightbox" onclick="closeLightbox()">
     <span class="lightbox-close">&times;</span>
-    <img id="lightbox-img" src="" alt="放大圖" />
+    <img id="lightbox-img" src="" alt="放大圖" crossorigin="anonymous" />
   </div>
 
   <script>
