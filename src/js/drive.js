@@ -97,6 +97,10 @@ export async function makeFilePublic(fileId) {
     headers: getHeaders(),
     body: JSON.stringify(body)
   });
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`無法將檔案 ${fileId} 設定為公開唯讀，狀態: ${res.status}, 回傳: ${errText}`);
+  }
   return res.ok;
 }
 

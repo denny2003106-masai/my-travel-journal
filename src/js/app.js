@@ -80,8 +80,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // 2. 拉取 API 數據並渲染
     fetch(`/api/share?id=${shareId}`)
-      .then(res => {
-        if (!res.ok) throw new Error('無法取得分享資料');
+      .then(async res => {
+        if (!res.ok) {
+          let errMsg = '無法取得分享資料';
+          try {
+            const errData = await res.json();
+            errMsg = errData.error || errData.details || errMsg;
+          } catch (e) {}
+          throw new Error(errMsg);
+        }
         return res.json();
       })
       .then(data => {
@@ -111,7 +118,8 @@ window.addEventListener('DOMContentLoaded', () => {
           <div style="text-align:center;padding:24px;max-width:400px;font-family:sans-serif;">
             <div style="font-size:3rem;margin-bottom:16px;">⚠️</div>
             <div style="font-size:1.2rem;font-weight:bold;margin-bottom:8px;color:#ef4444;">載入分享失敗</div>
-            <p style="font-size:0.85rem;color:#94a3b8;line-height:1.6;margin-bottom:16px;">該行程可能已被作者取消分享或刪除，或該分享設定已失效。</p>
+            <p style="font-size:0.85rem;color:#f1f5f9;line-height:1.6;margin-bottom:8px;word-break:break-all;">原因：${err.message}</p>
+            <p style="font-size:0.75rem;color:#94a3b8;line-height:1.5;margin-bottom:16px;">該行程可能尚未設為公開分享，或該分享設定已失效。</p>
             <a href="/" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:8px 20px;border-radius:20px;font-size:0.85rem;font-weight:bold;box-shadow:0 4px 10px rgba(37,99,235,0.3);display:inline-block;">建立我自己的手札</a>
           </div>
         `;

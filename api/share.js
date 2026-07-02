@@ -1,6 +1,4 @@
-const https = require('https');
-
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
   const { id } = req.query;
   if (!id) {
     res.status(400).json({ error: 'Missing file id' });
@@ -14,26 +12,48 @@ module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
-  // 後端-後端 fetch 避開 CORS 限制
-  https.get(url, (driveRes) => {
-    // 處理 301/302 重導向
-    if (driveRes.statusCode === 302 || driveRes.statusCode === 301) {
-      const redirectUrl = driveRes.headers.location;
-      https.get(redirectUrl, (redirectRes) => {
-        redirectRes.pipe(res);
-      }).on('error', (err) => {
-        res.status(500).json({ error: 'Failed to fetch redirect shared data', details: err.message });
+  try {
+    const driveRes = await fetch(url);
+    const contentType = driveRes.headers.get('content-type') || '';
+
+    if (!driveRes.ok) {
+      const text = await driveRes.text();
+      res.status(driveRes.status).json({ 
+        error: 'Google Drive returned error status', 
+        code: driveRes.status,
+        details: text.substring(0, 300)
       });
       return;
     }
-    
-    if (driveRes.statusCode !== 200) {
-      res.status(driveRes.statusCode).json({ error: 'Google Drive returned non-200 status', code: driveRes.statusCode });
+
+    if (contentType.includes('text/html')) {
+      const htmlText = await driveRes.text();
+      
+      // 處理 Google Drive 病毒掃描警告頁面 (包含 confirm= 連結)
+      if (htmlText.includes('confirm=')) {
+        const match = htmlText.match(/confirm=([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          const confirmToken = match[1];
+          const confirmUrl = `https://docs.google.com/uc?export=download&confirm=${confirmToken}&id=${id}`;
+          const confirmRes = await fetch(confirmUrl);
+          if (confirmRes.ok) {
+            const data = await confirmRes.json();
+            res.status(200).json(data);
+            return;
+          }
+        }
+      }
+      
+      res.status(403).json({ 
+        error: '檔案未公開或需要登入 (接收到 HTML 頁面而非 JSON 數據)',
+        details: htmlText.substring(0, 150).replace(/<[^>]*>/g, '').trim()
+      });
       return;
     }
-    
-    driveRes.pipe(res);
-  }).on('error', (err) => {
-    res.status(500).json({ error: 'Failed to fetch shared data', details: err.message });
-  });
+
+    const data = await driveRes.json();
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(500).json({ error: '無伺服器端點內部錯誤', details: err.message });
+  }
 };
