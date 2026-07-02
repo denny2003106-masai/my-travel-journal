@@ -289,8 +289,11 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
     loadLibrary((html2pdf) => {
       if (onStatusUpdate) onStatusUpdate('正在下載並轉換相片資源...');
 
-      // 3. 下載並將相片轉成 Base64
+      // 3. 下載並將相片轉成 Base64 (iOS 上完全禁用以節省 90% 記憶體，避免 WebKit OOM)
       const convertImagesToBase64 = async () => {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (isIOS) return; // iOS 禁用以策安全
+
         const imgs = iframeDoc.querySelectorAll('img');
         if (imgs.length === 0) return;
 
@@ -321,6 +324,19 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
         if (onStatusUpdate) onStatusUpdate('正在產生 PDF 長圖...');
 
         setTimeout(() => {
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+          // iOS 上將相片規格替換為 w400 縮圖，顯著降低解碼與圖片記憶體開銷
+          if (isIOS) {
+            const imgs = iframeDoc.querySelectorAll('img');
+            imgs.forEach(img => {
+              const src = img.getAttribute('src');
+              if (src && src.includes('=w1200')) {
+                img.src = src.replace('=w1200', '=w400');
+              }
+            });
+          }
+
           const element = iframeDoc.querySelector('.container');
           const elementWidth = element.offsetWidth || 700;
           const elementHeight = element.offsetHeight || 1000;
@@ -330,20 +346,17 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
           const widthInPt = elementWidth * 0.75;
           const heightInPt = elementHeight * 0.75 + 30;
 
-          // 檢測是否為 iOS 裝置 (iPhone / iPad)
-          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
           // 根據元件實際尺寸，動態調變渲染比例，防範 WebKit Canvas 記憶體限制 (OOM) 導致瀏覽器重載
-          const maxCanvasArea = isIOS ? 3000000 : 12000000; // iOS 限制在 300 萬像素，桌機限制在 1200 萬像素
+          const maxCanvasArea = isIOS ? 2500000 : 12000000; // iOS 縮減為 250 萬像素以求絕對安全
           const currentArea = elementWidth * elementHeight;
           
           let targetScale = 2.0;
           if (isIOS) {
             if (currentArea > maxCanvasArea) {
               targetScale = Math.sqrt(maxCanvasArea / currentArea);
-              if (targetScale < 0.45) targetScale = 0.45; // 最低比例限制，防過度模糊
+              if (targetScale < 0.45) targetScale = 0.45; // 最低比例限制
             } else {
-              targetScale = 1.0;
+              targetScale = 0.85; // iOS 預設比例降為 0.85x，確保記憶體安全且畫質可讀
             }
           } else {
             if (currentArea > maxCanvasArea) {
@@ -359,7 +372,7 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
           const opt = {
             margin:       0,
             filename:     document.title.replace(' - 旅跡成果分享', '').replace(/\s+/g, '_') + '_長圖.pdf',
-            image:        { type: 'jpeg', quality: 0.93 }, // 降低品質至 0.93 減少記憶體壓縮負擔
+            image:        { type: 'jpeg', quality: 0.90 }, // 降低品質至 0.90 減低二進位處理記憶體
             html2canvas:  { 
               scale: targetScale, // 動態調變比例
               useCORS: true, 
@@ -377,7 +390,7 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
             html2pdf().set(opt).from(element).output('bloburl').then((blobUrl) => {
               document.body.removeChild(iframe);
               
-              // 在 iOS 上，我們開啟一個全新視窗，且不加載任何外部 script，純靜態顯示
+              // 在 iOS 上，我們開啟一個全新視窗，且不加載 any 外部 script，純靜態顯示
               const printWindow = window.open('', '_blank');
               if (!printWindow) {
                 if (onError) onError(new Error('無法開啟 PDF 預覽分頁，請允許瀏覽器快顯視窗！'));
