@@ -137,9 +137,11 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
       body {
         padding: 20px !important;
       }
-      .journal-container {
+      .container {
+        width: 100% !important;
         max-width: 100% !important;
-        margin: 0 !important;
+        margin: 0 auto !important;
+        padding: 24px 16px !important;
         box-shadow: none !important;
         background: #ffffff !important;
         background-color: #ffffff !important;
@@ -210,10 +212,12 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
   // 1. 建立隱藏的 iframe 進行獨立渲染
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
-  iframe.style.width = '1024px'; // 模擬電腦版寬度，使 PDF 排版整齊
-  iframe.style.height = '768px';
-  iframe.style.visibility = 'hidden';
+  iframe.style.width = '800px'; // 模擬 A4 頁面寬度 (約 800px)，確保版面不超出
+  iframe.style.height = '1130px'; // 模擬 A4 頁面高度
   iframe.style.left = '-9999px';
+  iframe.style.top = '-9999px';
+  iframe.style.opacity = '0';
+  iframe.style.pointerEvents = 'none';
   document.body.appendChild(iframe);
 
   // 2. 寫入內容
