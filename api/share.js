@@ -1,4 +1,4 @@
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   const { id } = req.query;
   if (!id) {
     res.status(400).json({ error: 'Missing file id' });
@@ -56,4 +56,4 @@ module.exports = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: '無伺服器端點內部錯誤', details: err.message });
   }
-};
+}
