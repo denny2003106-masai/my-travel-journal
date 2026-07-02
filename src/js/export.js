@@ -119,7 +119,7 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
   try {
     const htmlString = generateSinglePageHtml(trip, spots, theme);
     
-    // 注入 PDF 專屬樣式：隱藏音樂控制與 CD、強制背景為白色、文字改為暗色以利列印與導出，且設定 A4 固定的 800px 寬度防止右側截斷！
+    // 注入 PDF 專屬樣式：隱藏音樂控制與 CD、強制背景為白色、文字改為暗色以利列印與導出，且設定 A4 固定的 700px 寬度防止右側截斷！
     const pdfStyle = `
       <style>
         #music-control-btn, .music-disc-container, .cd-disc, .cd-arm { display: none !important; }
@@ -140,10 +140,10 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
           margin: 0 !important;
         }
         .container {
-          width: 800px !important;
-          max-width: 800px !important;
+          width: 700px !important;
+          max-width: 700px !important;
           margin: 0 auto !important;
-          padding: 24px 16px !important;
+          padding: 16px 12px !important;
           box-shadow: none !important;
           background: #ffffff !important;
           background-color: #ffffff !important;
@@ -154,9 +154,22 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
           background-image: none !important;
           border: 1px solid #cbd5e1 !important;
           box-shadow: none !important;
+          padding: 24px 16px !important;
+          margin-bottom: 24px !important;
+        }
+        h1 {
+          font-size: 1.8rem !important;
+          margin-bottom: 8px !important;
+        }
+        .trip-meta {
+          gap: 12px !important;
+          font-size: 0.8rem !important;
         }
         .timeline::before {
           background-color: #cbd5e1 !important;
+        }
+        .spot-item {
+          margin-bottom: 8px !important;
         }
         .spot-card {
           background: #f8fafc !important;
@@ -166,40 +179,65 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
           color: #1e293b !important;
           page-break-inside: avoid !important;
           break-inside: avoid !important;
-          margin-bottom: 24px !important;
+          margin-bottom: 16px !important;
+          padding: 16px !important;
         }
-        .spot-title, .spot-name, h1, h2, h3, h4 {
-          color: #0f172a !important;
+        .spot-header {
+          padding-bottom: 6px !important;
+          margin-bottom: 8px !important;
         }
-        .spot-desc, .photo-caption, p {
-          color: #334155 !important;
+        .spot-name {
+          font-size: 1.15rem !important;
+          margin-bottom: 4px !important;
         }
-        .spot-date, .spot-location, span, i, a {
-          color: #64748b !important;
+        .spot-badges {
+          gap: 8px !important;
+          font-size: 0.75rem !important;
+        }
+        .spot-desc {
+          font-size: 0.85rem !important;
+          margin-bottom: 12px !important;
+          line-height: 1.5 !important;
+        }
+        .photo-grid {
+          gap: 10px !important;
+          grid-template-columns: repeat(2, 1fr) !important; /* 強制雙欄排版更為緊湊 */
         }
         .photo-card {
           background: #ffffff !important;
           background-color: #ffffff !important;
           border: 1px solid #cbd5e1 !important;
           box-shadow: none !important;
+          padding: 6px !important;
+        }
+        .photo-caption {
+          font-size: 0.75rem !important;
+          padding: 2px !important;
         }
         .audio-badge {
           background: #f8fafc !important;
           background-color: #f8fafc !important;
           border: 1px solid #cbd5e1 !important;
           color: #64748b !important;
+          padding: 6px !important;
         }
         .voice-transcript {
           background: #f1f5f9 !important;
           background-color: #f1f5f9 !important;
           border-left: 3px solid var(--accent-color) !important;
           color: #475569 !important;
+          font-size: 0.75rem !important;
+          padding: 6px 8px !important;
+          margin-top: 6px !important;
         }
         .journal-header h1 {
           color: #0f172a !important;
         }
         .journal-header p {
           color: #475569 !important;
+        }
+        .spot-date, .spot-location, span, i, a {
+          color: #64748b !important;
         }
       </style>
     `;
