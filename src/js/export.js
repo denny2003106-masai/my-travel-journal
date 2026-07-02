@@ -135,9 +135,10 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
           background-image: none !important;
           color: #0f172a !important;
         }
-        body {
+        html, body {
           padding: 0 !important;
           margin: 0 !important;
+          overflow: hidden !important;
         }
         .container {
           width: 700px !important;
@@ -304,9 +305,15 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
               const elementWidth = element.offsetWidth || 700;
               const elementHeight = element.offsetHeight || 1000;
 
+              // 將像素轉換為 PDF 的 pt (點)
+              // 1 px = 0.75 pt (在 96 DPI 標準下)
+              // 高度加上 15pt 安全空間，保證 100% 裝在第一頁，絕不產生第二頁空白頁！
+              const widthInPt = elementWidth * 0.75;
+              const heightInPt = elementHeight * 0.75 + 15;
+
               const opt = {
                 margin:       0, // 單頁長圖模式，無頁邊距
-                filename:     document.title.replace(' - 旅跡成果分享', '').replace(/\\s+/g, '_') + '_長捲軸.pdf',
+                filename:     document.title.replace(' - 旅跡成果分享', '').replace(/\\s+/g, '_') + '_長圖.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { 
                   scale: 2, 
@@ -315,22 +322,38 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
                   backgroundColor: '#ffffff'
                 },
                 jsPDF:        { 
-                  unit: 'px', 
-                  format: [elementWidth, elementHeight], 
-                  hotfixes: ['px_scaling'] 
+                  unit: 'pt', 
+                  format: [widthInPt, heightInPt]
                 }
               };
 
-              html2pdf().set(opt).from(element).save().then(() => {
-                statusDiv.innerText = 'PDF 下載成功！即將關閉此分頁...';
-                setTimeout(() => {
-                  window.close();
-                }, 1000);
-              }).catch(err => {
-                statusDiv.style.background = '#ef4444';
-                statusDiv.innerText = '產生 PDF 失敗: ' + err.message;
-                console.error(err);
-              });
+              // 檢測是否為 iOS 裝置 (iPhone / iPad)
+              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+              if (isIOS) {
+                statusDiv.innerText = 'PDF 產生完成！正在載入閱讀器，請用『分享』儲存檔案...';
+                // iOS 平台上使用 output('bloburl') 直接轉向載入 PDF 閱讀器，解決 iOS Chrome/Safari 阻擋下載彈出視窗且會關閉頁面的問題
+                html2pdf().set(opt).from(element).output('bloburl').then((blobUrl) => {
+                  statusDiv.style.display = 'none';
+                  window.location.replace(blobUrl);
+                }).catch(err => {
+                  statusDiv.style.background = '#ef4444';
+                  statusDiv.innerText = '產生 PDF 失敗: ' + err.message;
+                  console.error(err);
+                });
+              } else {
+                // 桌機與 Android 使用正常下載流程
+                html2pdf().set(opt).from(element).save().then(() => {
+                  statusDiv.innerText = 'PDF 下載已開始！此分頁將於 5 秒後自動關閉...';
+                  setTimeout(() => {
+                    window.close();
+                  }, 5000);
+                }).catch(err => {
+                  statusDiv.style.background = '#ef4444';
+                  statusDiv.innerText = '產生 PDF 失敗: ' + err.message;
+                  console.error(err);
+                });
+              }
             }, 1000);
           });
         });
