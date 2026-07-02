@@ -19,6 +19,7 @@ import { getPhotoLocation, getPlaceNameFromGPS, compressImage, clusterPhotos, se
 import { startRecording, stopRecording, isSpeechSupported } from './audio.js';
 import { searchInspirationPhotos, searchKeys, updateSearchKeys } from './search.js';
 import { filterJournalData, exportToHtmlFile, exportToMarkdownZip, exportToPdf } from './export.js';
+import { generateSinglePageHtml } from './templates.js';
 
 // 全域狀態
 let tripsData = { trips: [] };
@@ -61,6 +62,63 @@ if ('serviceWorker' in navigator) {
 
 // 主初始化程序
 window.addEventListener('DOMContentLoaded', () => {
+  // 檢查是否為分享查看模式
+  const urlParams = new URLSearchParams(window.location.search);
+  const shareId = urlParams.get('share');
+  if (shareId) {
+    // 1. 顯示精美載入中畫面
+    document.body.innerHTML = `
+      <div id="share-loader" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0f172a;color:#ffffff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:999999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+        <div style="width:50px;height:50px;border:5px solid #1e293b;border-top:5px solid #ff4b2b;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:16px;"></div>
+        <div style="font-size:1.1rem;font-weight:bold;margin-bottom:8px;">正在載入旅跡手札...</div>
+        <div style="font-size:0.85rem;color:#64748b;">請稍候，正在讀取成果資料與音樂設定</div>
+        <style>
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        </style>
+      </div>
+    `;
+
+    // 2. 拉取 API 數據並渲染
+    fetch(`/api/share?id=${shareId}`)
+      .then(res => {
+        if (!res.ok) throw new Error('無法取得分享資料');
+        return res.json();
+      })
+      .then(data => {
+        const { trip, spots, theme: selectedTheme } = data;
+        const html = generateSinglePageHtml(trip, spots, selectedTheme || 'youth');
+
+        // 3. 建立網頁頂部宣傳橫幅 (Viral Call to Action)
+        const bannerHtml = `
+          <div id="shared-page-banner" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: #ffffff; text-align: center; padding: 12px 16px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 0.85rem; font-weight: bold; position: relative; z-index: 99999999; box-shadow: 0 4px 15px rgba(0,0,0,0.25); display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <span>✨ 這是您的朋友分享給您的【旅跡手札】！您也可以隨時記錄屬於自己的旅遊軌跡。</span>
+            <a href="/" target="_blank" style="background: #ffffff; color: #1e1b4b; text-decoration: none; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">立即免費建立</a>
+          </div>
+        `;
+
+        // 4. 重寫頁面文檔
+        document.open();
+        document.write(html);
+        document.close();
+
+        // 5. 插入導航條橫幅
+        const div = document.createElement('div');
+        div.innerHTML = bannerHtml;
+        document.body.insertBefore(div.firstElementChild, document.body.firstChild);
+      })
+      .catch(err => {
+        document.getElementById('share-loader').innerHTML = `
+          <div style="text-align:center;padding:24px;max-width:400px;font-family:sans-serif;">
+            <div style="font-size:3rem;margin-bottom:16px;">⚠️</div>
+            <div style="font-size:1.2rem;font-weight:bold;margin-bottom:8px;color:#ef4444;">載入分享失敗</div>
+            <p style="font-size:0.85rem;color:#94a3b8;line-height:1.6;margin-bottom:16px;">該行程可能已被作者取消分享或刪除，或該分享設定已失效。</p>
+            <a href="/" style="background:#2563eb;color:#ffffff;text-decoration:none;padding:8px 20px;border-radius:20px;font-size:0.85rem;font-weight:bold;box-shadow:0 4px 10px rgba(37,99,235,0.3);display:inline-block;">建立我自己的手札</a>
+          </div>
+        `;
+      });
+    return; // 終止後續的登入與 appShell 初始化
+  }
+
   // 套用主題
   document.documentElement.setAttribute('data-theme', theme);
   
@@ -1433,6 +1491,10 @@ function showExportModal(preselectedTripId = null) {
           <button class="btn btn-secondary" id="btn-do-export-md">
             <i class="fa-solid fa-file-zipper"></i> 匯出為 Markdown 打包檔 (.zip)
           </button>
+
+          <button class="btn btn-secondary" id="btn-do-export-share" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; border: none;">
+            <i class="fa-solid fa-share-nodes"></i> 一鍵生成線上分享網址 (任何人免登入瀏覽)
+          </button>
         </div>
       </div>
     </div>
@@ -1452,6 +1514,7 @@ function showExportModal(preselectedTripId = null) {
   document.getElementById('btn-do-export-html').addEventListener('click', () => handleExportAction('html'));
   document.getElementById('btn-do-export-pdf').addEventListener('click', () => handleExportAction('pdf'));
   document.getElementById('btn-do-export-md').addEventListener('click', () => handleExportAction('md'));
+  document.getElementById('btn-do-export-share').addEventListener('click', () => handleExportAction('share'));
 }
 
 /**
@@ -1517,6 +1580,68 @@ async function handleExportAction(format) {
         showErrorToast(`PDF 產生失敗: ${err.message}`);
       }
     );
+  } else if (format === 'share') {
+    // 檢查是否有登入
+    if (!authState.accessToken || !driveFolderId) {
+      showErrorToast('請先登入 Google 雲端硬碟以執行雲端分享！');
+      return;
+    }
+
+    showLoader('正在為您產生線上公開分享連結...');
+    try {
+      const themeVal = document.getElementById('export-select-theme').value;
+      const shareData = {
+        trip: mainTrip,
+        spots: allSpots,
+        theme: themeVal
+      };
+
+      // 產生一個唯一且能代表該匯出內容的檔案名稱
+      let cleanFilterVal = filterValue.replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '_');
+      const filename = `share_${filterType}_${cleanFilterVal}.json`;
+
+      // 1. 尋找是否已有此檔，無則建立，有則更新
+      let shareFileId = await findFileInFolder(driveFolderId, filename);
+      const jsonContent = JSON.stringify(shareData);
+
+      if (shareFileId) {
+        // 更新檔案內容
+        await updateFileContent(shareFileId, jsonContent, 'application/json');
+      } else {
+        // 新增上傳檔案
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        shareFileId = await uploadFile(driveFolderId, filename, blob, 'application/json');
+      }
+
+      // 2. 確保權限為公開任何人可讀 (以防 uploadFile 失敗或 PATCH 權限變更)
+      await makeFilePublic(shareFileId);
+
+      // 3. 拼裝網址並複製到剪貼簿
+      const shareUrl = `${window.location.origin}/?share=${shareFileId}`;
+      
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        showSuccessToast('線上分享網址已成功生成並複製到您的剪貼簿！');
+      } catch (clipErr) {
+        console.warn('寫入剪貼簿失敗，改用提示複製:', clipErr);
+      }
+      
+      hideLoader();
+      
+      // 彈出成功提示與連結
+      showModal('分享成功！', `
+        <div style="text-align:center; padding:16px;">
+          <div style="font-size:3.5rem; margin-bottom:16px; color:#10b981;">🎉</div>
+          <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px; color:var(--text-primary);">您的旅遊手札已成功線上化！任何人都可以直接透過此連結免登入瀏覽您的手札成果。</p>
+          <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:12px; font-family:monospace; font-size:0.85rem; word-break:break-all; user-select:all; margin-bottom:16px; color:var(--text-secondary);">${shareUrl}</div>
+          <p style="font-size:0.8rem; color:#64748b; margin-top:-8px; margin-bottom:16px;">(提示：長按上方區塊可全選網址，複製後傳給 LINE 朋友吧！)</p>
+          <button class="btn btn-primary" onclick="navigator.clipboard.writeText('${shareUrl}').then(() => alert('已複製連結到剪貼簿！')).catch(() => alert('請手動複製上方網址！'))">複製連結網址</button>
+        </div>
+      `);
+    } catch (err) {
+      hideLoader();
+      showErrorToast(`生成分享網址失敗: ${err.message}`);
+    }
   } else {
     showLoader('正在下載相片並打包 Markdown Zip 壓縮檔中...');
     try {
