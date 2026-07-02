@@ -305,18 +305,21 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
               const elementWidth = element.offsetWidth || 700;
               const elementHeight = element.offsetHeight || 1000;
 
+              // 檢測是否為 iOS 裝置 (iPhone / iPad)
+              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
               // 將像素轉換為 PDF 的 pt (點)
               // 1 px = 0.75 pt (在 96 DPI 標準下)
-              // 高度加上 15pt 安全空間，保證 100% 裝在第一頁，絕不產生第二頁空白頁！
+              // 高度加上 30pt 安全空間，保證 100% 裝在第一頁，絕不產生第二頁空白頁！
               const widthInPt = elementWidth * 0.75;
-              const heightInPt = elementHeight * 0.75 + 15;
+              const heightInPt = elementHeight * 0.75 + 30;
 
               const opt = {
                 margin:       0, // 單頁長圖模式，無頁邊距
                 filename:     document.title.replace(' - 旅跡成果分享', '').replace(/\\s+/g, '_') + '_長圖.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
+                image:        { type: 'jpeg', quality: 0.95 }, // 稍微降低至 0.95 減少記憶體開銷
                 html2canvas:  { 
-                  scale: 2, 
+                  scale: isIOS ? 1 : 2, // iOS 裝置強制為 scale: 1，防止 WebKit 記憶體超載導致 Safari/Chrome 崩潰重整 (Reload)
                   useCORS: true, 
                   logging: false,
                   backgroundColor: '#ffffff'
@@ -326,9 +329,6 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
                   format: [widthInPt, heightInPt]
                 }
               };
-
-              // 檢測是否為 iOS 裝置 (iPhone / iPad)
-              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
               if (isIOS) {
                 statusDiv.innerText = 'PDF 產生完成！正在載入閱讀器，請用『分享』儲存檔案...';
