@@ -116,244 +116,214 @@ export function exportToHtmlFile(trip, spots, theme = 'youth') {
  * 產生 HTML 成果網頁並直接觸發 PDF 下載至瀏覽器
  */
 export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null, onComplete = null, onError = null) {
-  const htmlString = generateSinglePageHtml(trip, spots, theme);
-  
-  // 注入 PDF 專屬樣式：隱藏音樂控制與 CD、強制背景為白色、文字改為暗色以利列印與導出
-  const pdfStyle = `
-    <style>
-      #music-control-btn, .music-disc-container, .cd-disc, .cd-arm { display: none !important; }
-      :root, [data-theme="light"], html, body {
-        --bg-primary: #ffffff !important;
-        --bg-secondary: #ffffff !important;
-        --bg-card: #ffffff !important;
-        --border-color: #cbd5e1 !important;
-        --text-primary: #0f172a !important;
-        --text-secondary: #475569 !important;
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        background-image: none !important;
-        color: #0f172a !important;
-      }
-      body {
-        padding: 20px !important;
-      }
-      .container {
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 auto !important;
-        padding: 24px 16px !important;
-        box-shadow: none !important;
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-      }
-      header {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        background-image: none !important;
-        border: 1px solid #cbd5e1 !important;
-        box-shadow: none !important;
-      }
-      .timeline::before {
-        background-color: #cbd5e1 !important;
-      }
-      .spot-card {
-        background: #f8fafc !important;
-        background-color: #f8fafc !important;
-        border: 1px solid #cbd5e1 !important;
-        box-shadow: none !important;
-        color: #1e293b !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        margin-bottom: 24px !important;
-      }
-      .spot-title, .spot-name, h1, h2, h3, h4 {
-        color: #0f172a !important;
-      }
-      .spot-desc, .photo-caption, p {
-        color: #334155 !important;
-      }
-      .spot-date, .spot-location, span, i, a {
-        color: #64748b !important;
-      }
-      .photo-card {
-        background: #ffffff !important;
-        background-color: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
-        box-shadow: none !important;
-      }
-      .audio-badge {
-        background: #f8fafc !important;
-        background-color: #f8fafc !important;
-        border: 1px solid #cbd5e1 !important;
-        color: #64748b !important;
-      }
-      .voice-transcript {
-        background: #f1f5f9 !important;
-        background-color: #f1f5f9 !important;
-        border-left: 3px solid var(--accent-color) !important;
-        color: #475569 !important;
-      }
-      .journal-header h1 {
-        color: #0f172a !important;
-      }
-      .journal-header p {
-        color: #475569 !important;
-      }
-    </style>
-  `;
-  
-  let styledHtml = htmlString;
-  if (htmlString.includes('</head>')) {
-    styledHtml = htmlString.replace('</head>', pdfStyle + '</head>');
-  } else {
-    styledHtml = pdfStyle + htmlString;
-  }
-
-  // 1. 建立隱藏的 iframe 進行獨立渲染
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.width = '800px'; // 模擬 A4 頁面寬度 (約 800px)，確保版面不超出
-  iframe.style.height = '1130px'; // 模擬 A4 頁面高度
-  iframe.style.left = '-9999px';
-  iframe.style.top = '-9999px';
-  iframe.style.opacity = '0';
-  iframe.style.pointerEvents = 'none';
-  document.body.appendChild(iframe);
-
-  // 2. 寫入內容
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-  iframeDoc.open();
-  iframeDoc.write(styledHtml);
-  iframeDoc.close();
-
-  // 啟動 Light Mode 主題變數
-  iframeDoc.documentElement.setAttribute('data-theme', 'light');
-
-  if (onStatusUpdate) onStatusUpdate('正在載入 PDF 核心元件...');
-
-  // 3. 動態加載 html2pdf.js
-  const loadLibrary = (callback) => {
-    if (window.html2pdf) {
-      callback(window.html2pdf);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-    script.crossOrigin = 'anonymous';
-    script.onload = () => callback(window.html2pdf);
-    script.onerror = () => {
-      document.body.removeChild(iframe);
-      if (onError) onError(new Error('下載 PDF 核心元件失敗，請確認網路連線！'));
-    };
-    document.body.appendChild(script);
-  };
-
-  loadLibrary((html2pdf) => {
-    if (onStatusUpdate) onStatusUpdate('正在下載並轉換相片為本機 Data...');
-
-    // 4. 下載圖片並轉換為 Base64 Data URL (以徹底繞過 html2canvas 的 CORS 限制)
-    const convertImagesToBase64 = async () => {
-      const imgs = iframeDoc.querySelectorAll('img');
-      if (imgs.length === 0) return;
-
-      const promises = Array.from(imgs).map(async (img) => {
-        const originalSrc = img.getAttribute('src');
-        if (!originalSrc || originalSrc.startsWith('data:')) return;
-        
-        try {
-          // 發起 CORS fetch 請求圖片二進位 blob
-          const res = await fetch(originalSrc);
-          if (!res.ok) throw new Error(`HTTP status ${res.status}`);
-          const blob = await res.blob();
-          
-          // 轉為 Data URL (Base64)
-          const base64Url = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-          
-          img.src = base64Url;
-          console.log('相片成功轉換為 Base64:', originalSrc.substring(0, 50));
-        } catch (err) {
-          console.warn('相片轉換 Base64 失敗 (採用原 URL 回退):', originalSrc, err);
+  try {
+    const htmlString = generateSinglePageHtml(trip, spots, theme);
+    
+    // 注入 PDF 專屬樣式：隱藏音樂控制與 CD、強制背景為白色、文字改為暗色以利列印與導出，且設定 A4 固定的 800px 寬度防止右側截斷！
+    const pdfStyle = `
+      <style>
+        #music-control-btn, .music-disc-container, .cd-disc, .cd-arm { display: none !important; }
+        :root, [data-theme="light"], html, body {
+          --bg-primary: #ffffff !important;
+          --bg-secondary: #ffffff !important;
+          --bg-card: #ffffff !important;
+          --border-color: #cbd5e1 !important;
+          --text-primary: #0f172a !important;
+          --text-secondary: #475569 !important;
+          background: #ffffff !important;
+          background-color: #ffffff !important;
+          background-image: none !important;
+          color: #0f172a !important;
         }
-      });
+        body {
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+        .container {
+          width: 800px !important;
+          max-width: 800px !important;
+          margin: 0 auto !important;
+          padding: 24px 16px !important;
+          box-shadow: none !important;
+          background: #ffffff !important;
+          background-color: #ffffff !important;
+        }
+        header {
+          background: #ffffff !important;
+          background-color: #ffffff !important;
+          background-image: none !important;
+          border: 1px solid #cbd5e1 !important;
+          box-shadow: none !important;
+        }
+        .timeline::before {
+          background-color: #cbd5e1 !important;
+        }
+        .spot-card {
+          background: #f8fafc !important;
+          background-color: #f8fafc !important;
+          border: 1px solid #cbd5e1 !important;
+          box-shadow: none !important;
+          color: #1e293b !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          margin-bottom: 24px !important;
+        }
+        .spot-title, .spot-name, h1, h2, h3, h4 {
+          color: #0f172a !important;
+        }
+        .spot-desc, .photo-caption, p {
+          color: #334155 !important;
+        }
+        .spot-date, .spot-location, span, i, a {
+          color: #64748b !important;
+        }
+        .photo-card {
+          background: #ffffff !important;
+          background-color: #ffffff !important;
+          border: 1px solid #cbd5e1 !important;
+          box-shadow: none !important;
+        }
+        .audio-badge {
+          background: #f8fafc !important;
+          background-color: #f8fafc !important;
+          border: 1px solid #cbd5e1 !important;
+          color: #64748b !important;
+        }
+        .voice-transcript {
+          background: #f1f5f9 !important;
+          background-color: #f1f5f9 !important;
+          border-left: 3px solid var(--accent-color) !important;
+          color: #475569 !important;
+        }
+        .journal-header h1 {
+          color: #0f172a !important;
+        }
+        .journal-header p {
+          color: #475569 !important;
+        }
+      </style>
+    `;
+    
+    // 自動下載與圖片 Base64 轉換腳本
+    const printScript = `
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
+      <script>
+        window.addEventListener('load', () => {
+          // 顯示下載狀態提示
+          const statusDiv = document.createElement('div');
+          statusDiv.style.position = 'fixed';
+          statusDiv.style.top = '20px';
+          statusDiv.style.left = '50%';
+          statusDiv.style.transform = 'translateX(-50%)';
+          statusDiv.style.background = 'rgba(15, 23, 42, 0.9)';
+          statusDiv.style.color = '#ffffff';
+          statusDiv.style.padding = '12px 24px';
+          statusDiv.style.borderRadius = '30px';
+          statusDiv.style.zIndex = '99999';
+          statusDiv.style.fontFamily = 'sans-serif';
+          statusDiv.style.fontSize = '0.9rem';
+          statusDiv.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
+          statusDiv.innerText = '正在載入 PDF 核心元件與相片...';
+          document.body.appendChild(statusDiv);
 
-      // 限制 8 秒內必須全部跑完，防卡死
-      const timeoutPromise = new Promise(resolve => setTimeout(resolve, 8000));
-      await Promise.race([
-        Promise.all(promises),
-        timeoutPromise
-      ]);
-    };
+          // 1. 下載並轉換圖片為 Base64 (徹底解決 CORS 圖片空白問題)
+          const convertImagesToBase64 = async () => {
+            const imgs = document.querySelectorAll('.container img');
+            if (imgs.length === 0) return;
 
-    convertImagesToBase64().then(() => {
-      // 給予瀏覽器微小時間開始載入 iframe 中的資源
-      setTimeout(() => {
-        const imgs = iframeDoc.querySelectorAll('img');
-        
-        const generatePDF = () => {
-          if (onStatusUpdate) onStatusUpdate('相片載入完成，正在渲染 PDF 排版檔...');
-          
-          setTimeout(() => {
-            const opt = {
-              margin:       [10, 10, 10, 10], // A4 頁邊距 (單位: mm)
-              filename:     `${trip.name || 'travel-journal'}_旅遊手札.pdf`,
-              image:        { type: 'jpeg', quality: 0.98 },
-              html2canvas:  { 
-                scale: 2, 
-                useCORS: true, 
-                logging: false,
-                allowTaint: true,
-                backgroundColor: '#ffffff'
-              },
-              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-              pagebreak:    { mode: ['css', 'legacy'] }
-            };
-
-            if (onStatusUpdate) onStatusUpdate('相片排版完成，正在產生並下載 PDF...');
-
-            html2pdf().set(opt).from(iframeDoc.body).save().then(() => {
-              document.body.removeChild(iframe);
-              if (onComplete) onComplete();
-            }).catch(err => {
-              document.body.removeChild(iframe);
-              if (onError) onError(err);
+            const promises = Array.from(imgs).map(async (img) => {
+              const originalSrc = img.getAttribute('src');
+              if (!originalSrc || originalSrc.startsWith('data:')) return;
+              try {
+                const res = await fetch(originalSrc);
+                if (!res.ok) throw new Error('HTTP status ' + res.status);
+                const blob = await res.blob();
+                const base64Url = await new Promise((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result);
+                  reader.onerror = reject;
+                  reader.readAsDataURL(blob);
+                });
+                img.src = base64Url;
+              } catch (err) {
+                console.warn('相片轉換 Base64 失敗:', originalSrc, err);
+              }
             });
-          }, 1200); // 給予足夠的繪圖緩衝時間
-        };
 
-        if (imgs.length === 0) {
-          generatePDF();
-          return;
-        }
+            // 限制最長 6 秒完成
+            const timeoutPromise = new Promise(resolve => setTimeout(resolve, 6000));
+            await Promise.race([Promise.all(promises), timeoutPromise]);
+          };
 
-        // 等待所有圖片載入完畢，並附帶安全超時機制
-        const promises = Array.from(imgs).map(img => {
-          if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-          return new Promise(resolve => {
-            const timeout = setTimeout(() => {
-              console.warn('圖片加載超時安全閥啟動:', img.src);
-              resolve(); // 超時直接解析，防止卡死
-            }, 5000);
+          convertImagesToBase64().then(() => {
+            statusDiv.innerText = '相片載入完成，正在產生 PDF 檔案...';
+            
+            setTimeout(() => {
+              const opt = {
+                margin:       [10, 10, 10, 10],
+                filename:     document.title.replace(' - 旅跡成果分享', '').replace(/\\s+/g, '_') + '.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { 
+                  scale: 2, 
+                  useCORS: true, 
+                  logging: false,
+                  backgroundColor: '#ffffff'
+                },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['css', 'legacy'] }
+              };
 
-            img.onload = () => {
-              clearTimeout(timeout);
-              resolve();
-            };
-            img.onerror = () => {
-              clearTimeout(timeout);
-              resolve();
-            };
+              const element = document.querySelector('.container');
+              html2pdf().set(opt).from(element).save().then(() => {
+                statusDiv.innerText = 'PDF 下載成功！即將關閉此分頁...';
+                setTimeout(() => {
+                  window.close();
+                }, 1000);
+              }).catch(err => {
+                statusDiv.style.background = '#ef4444';
+                statusDiv.innerText = '產生 PDF 失敗: ' + err.message;
+                console.error(err);
+              });
+            }, 1000);
           });
         });
+      </script>
+    `;
 
-        Promise.all(promises).then(generatePDF);
-      }, 200);
-    });
-  });
+    let styledHtml = htmlString;
+    // 注入樣式
+    if (htmlString.includes('</head>')) {
+      styledHtml = htmlString.replace('</head>', pdfStyle + '</head>');
+    } else {
+      styledHtml = pdfStyle + htmlString;
+    }
+    
+    // 注入自動下載腳本 (置於 </body> 之前)
+    if (styledHtml.includes('</body>')) {
+      styledHtml = styledHtml.replace('</body>', printScript + '</body>');
+    } else {
+      styledHtml = styledHtml + printScript;
+    }
+
+    // 1. 開啟新分頁
+    if (onStatusUpdate) onStatusUpdate('正在開啟下載分頁...');
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      throw new Error('無法開啟 PDF 下載分頁，請檢查您的瀏覽器是否封鎖了快顯視窗！');
+    }
+
+    // 2. 寫入內容，新分頁會自動執行轉換並下載
+    printWindow.document.open();
+    printWindow.document.write(styledHtml);
+    printWindow.document.close();
+    
+    // 啟動 Light Mode 主題變數 (在新視窗中)
+    printWindow.document.documentElement.setAttribute('data-theme', 'light');
+
+    if (onComplete) onComplete();
+  } catch (err) {
+    if (onError) onError(err);
+  }
 }
 
 /**
