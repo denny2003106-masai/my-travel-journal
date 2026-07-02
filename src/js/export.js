@@ -122,10 +122,19 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
   const pdfStyle = `
     <style>
       #music-control-btn, .music-disc-container, .cd-disc, .cd-arm { display: none !important; }
-      body {
+      :root, [data-theme="light"], html, body {
+        --bg-primary: #ffffff !important;
+        --bg-secondary: #ffffff !important;
+        --bg-card: #ffffff !important;
+        --border-color: #cbd5e1 !important;
+        --text-primary: #0f172a !important;
+        --text-secondary: #475569 !important;
         background: #ffffff !important;
+        background-color: #ffffff !important;
         background-image: none !important;
-        color: #1e293b !important;
+        color: #0f172a !important;
+      }
+      body {
         padding: 20px !important;
       }
       .journal-container {
@@ -133,40 +142,52 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
         margin: 0 !important;
         box-shadow: none !important;
         background: #ffffff !important;
+        background-color: #ffffff !important;
+      }
+      header {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        background-image: none !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
       }
       .timeline::before {
         background-color: #cbd5e1 !important;
       }
       .spot-card {
         background: #f8fafc !important;
-        border: 1px solid #e2e8f0 !important;
+        background-color: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
         box-shadow: none !important;
         color: #1e293b !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         margin-bottom: 24px !important;
       }
-      .spot-title {
+      .spot-title, .spot-name, h1, h2, h3, h4 {
         color: #0f172a !important;
       }
-      .spot-desc, .photo-caption {
+      .spot-desc, .photo-caption, p {
         color: #334155 !important;
       }
-      .spot-date, .spot-location {
+      .spot-date, .spot-location, span, i, a {
         color: #64748b !important;
       }
       .photo-card {
         background: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
         box-shadow: none !important;
       }
       .audio-badge {
         background: #f8fafc !important;
-        border: 1px solid #e2e8f0 !important;
+        background-color: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
         color: #64748b !important;
       }
       .voice-transcript {
         background: #f1f5f9 !important;
+        background-color: #f1f5f9 !important;
         border-left: 3px solid var(--accent-color) !important;
         color: #475569 !important;
       }
@@ -200,6 +221,9 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
   iframeDoc.open();
   iframeDoc.write(styledHtml);
   iframeDoc.close();
+
+  // 啟動 Light Mode 主題變數
+  iframeDoc.documentElement.setAttribute('data-theme', 'light');
 
   if (onStatusUpdate) onStatusUpdate('正在載入 PDF 核心元件...');
 
@@ -278,7 +302,8 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
                 scale: 2, 
                 useCORS: true, 
                 logging: false,
-                allowTaint: true
+                allowTaint: true,
+                backgroundColor: '#ffffff'
               },
               jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
               pagebreak:    { mode: ['css', 'legacy'] }

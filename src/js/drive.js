@@ -241,8 +241,9 @@ export async function deleteFile(fileId) {
  * 產生 Google Drive 直連圖片或檔案的公開網址 (可用於嵌入)
  */
 export function getDirectFileUrl(fileId) {
-  // 對於圖片，這個 URL 可以在網頁上直接載入 (在 file 被設為 anyone reader 之後)
-  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+  // 對於圖片，使用 lh3.googleusercontent.com/d/ 格式，以取得原生支援 CORS 的直連相片網址。
+  // 這樣在繪製 PDF 時，html2canvas 才能順利讀取照片像素，彻底防止 PDF 照片空白。
+  return `https://lh3.googleusercontent.com/d/${fileId}=w1200`;
 }
 
 /**
