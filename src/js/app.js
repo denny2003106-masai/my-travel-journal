@@ -1480,20 +1480,16 @@ function showExportModal(preselectedTripId = null) {
 
       <div style="border-top:1px solid var(--border-glass); padding-top:12px; margin-top:8px;">
         <div style="display:flex; flex-direction:column; gap:12px;">
-          <button class="btn btn-primary" id="btn-do-export-html">
-            <i class="fa-solid fa-code"></i> 產生個人成果網頁 (HTML 單頁，適合嵌入 Google 協作平台)
+          <button class="btn btn-secondary" id="btn-do-export-share" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; border: none; font-weight: bold;">
+            <i class="fa-solid fa-share-nodes"></i> 一鍵生成線上分享網址 (任何人免登入瀏覽)
           </button>
 
-          <button class="btn btn-secondary" id="btn-do-export-pdf" style="background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; border: none;">
-            <i class="fa-solid fa-file-pdf"></i> 匯出為單頁長圖 PDF (適合手機滾動閱讀，無分頁切斷)
+          <button class="btn btn-primary" id="btn-do-export-html">
+            <i class="fa-solid fa-code"></i> 產生個人成果網頁 (HTML 單頁，適合嵌入 Google 協作平台)
           </button>
           
           <button class="btn btn-secondary" id="btn-do-export-md">
             <i class="fa-solid fa-file-zipper"></i> 匯出為 Markdown 打包檔 (.zip)
-          </button>
-
-          <button class="btn btn-secondary" id="btn-do-export-share" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; border: none;">
-            <i class="fa-solid fa-share-nodes"></i> 一鍵生成線上分享網址 (任何人免登入瀏覽)
           </button>
         </div>
       </div>
@@ -1511,10 +1507,9 @@ function showExportModal(preselectedTripId = null) {
     });
   });
 
-  document.getElementById('btn-do-export-html').addEventListener('click', () => handleExportAction('html'));
-  document.getElementById('btn-do-export-pdf').addEventListener('click', () => handleExportAction('pdf'));
-  document.getElementById('btn-do-export-md').addEventListener('click', () => handleExportAction('md'));
   document.getElementById('btn-do-export-share').addEventListener('click', () => handleExportAction('share'));
+  document.getElementById('btn-do-export-html').addEventListener('click', () => handleExportAction('html'));
+  document.getElementById('btn-do-export-md').addEventListener('click', () => handleExportAction('md'));
 }
 
 /**
@@ -1600,8 +1595,14 @@ async function handleExportAction(format) {
       let cleanFilterVal = filterValue.replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '_');
       const filename = `share_${filterType}_${cleanFilterVal}.json`;
 
-      // 1. 尋找是否已有此檔，無則建立，有則更新
-      let shareFileId = await findFileInFolder(driveFolderId, filename);
+      // 1. 尋找是否已有此檔，無則建立，有則更新 (獨立 try-catch 防止意外報錯阻斷)
+      let shareFileId = null;
+      try {
+        shareFileId = await findFileInFolder(driveFolderId, filename);
+      } catch (findErr) {
+        console.warn('尋找舊分享檔失敗，將嘗試新建上傳:', findErr);
+      }
+
       const jsonContent = JSON.stringify(shareData);
 
       if (shareFileId) {
@@ -1613,17 +1614,23 @@ async function handleExportAction(format) {
         shareFileId = await uploadFile(driveFolderId, filename, blob, 'application/json');
       }
 
-      // 2. 確保權限為公開任何人可讀 (以防 uploadFile 失敗或 PATCH 權限變更)
-      await makeFilePublic(shareFileId);
+      // 2. 確保權限為公開任何人可讀 (獨立 try-catch，防範 G Suite 組織政策或跨域等問題阻斷生成網址)
+      try {
+        await makeFilePublic(shareFileId);
+      } catch (pubErr) {
+        console.warn('設定檔案公開權限失敗，將繼續生成連結:', pubErr);
+      }
 
       // 3. 拼裝網址並複製到剪貼簿
       const shareUrl = `${window.location.origin}/?share=${shareFileId}`;
       
       try {
-        await navigator.clipboard.writeText(shareUrl);
-        showSuccessToast('線上分享網址已成功生成並複製到您的剪貼簿！');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(shareUrl);
+          showSuccessToast('線上分享網址已成功生成並複製到您的剪貼簿！');
+        }
       } catch (clipErr) {
-        console.warn('寫入剪貼簿失敗，改用提示複製:', clipErr);
+        console.warn('自動寫入剪貼簿被瀏覽器阻擋，改由對話框引導複製:', clipErr);
       }
       
       hideLoader();
@@ -1633,16 +1640,16 @@ async function handleExportAction(format) {
         <div style="text-align:center; padding:16px;">
           <div style="font-size:3.5rem; margin-bottom:16px; color:#10b981;">🎉</div>
           <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px; color:var(--text-primary);">您的旅遊手札已成功線上化！任何人都可以直接透過此連結免登入瀏覽您的手札成果。</p>
-          <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:12px; font-family:monospace; font-size:0.85rem; word-break:break-all; user-select:all; margin-bottom:16px; color:var(--text-secondary);">${shareUrl}</div>
+          <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:12px; font-family:monospace; font-size:0.85rem; word-break:break-all; user-select:all; margin-bottom:16px; color:var(--text-secondary); font-weight: bold;">${shareUrl}</div>
           <p style="font-size:0.8rem; color:#64748b; margin-top:-8px; margin-bottom:16px;">(提示：長按上方區塊可全選網址，複製後傳給 LINE 朋友吧！)</p>
-          <button class="btn btn-primary" onclick="navigator.clipboard.writeText('${shareUrl}').then(() => alert('已複製連結到剪貼簿！')).catch(() => alert('請手動複製上方網址！'))">複製連結網址</button>
+          <button class="btn btn-primary" onclick="if(navigator.clipboard){navigator.clipboard.writeText('${shareUrl}').then(() => alert('已複製連結到剪貼簿！')).catch(() => alert('請手動複製上方網址！'))}else{alert('請直接手動選取上方網址並複製！')}">複製連結網址</button>
         </div>
       `);
     } catch (err) {
       hideLoader();
       showErrorToast(`生成分享網址失敗: ${err.message}`);
     }
-  } else {
+    } else {
     showLoader('正在下載相片並打包 Markdown Zip 壓縮檔中...');
     try {
       await exportToMarkdownZip(mainTrip, allSpots, (progress) => {
