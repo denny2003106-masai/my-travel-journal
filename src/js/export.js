@@ -331,11 +331,49 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
               };
 
               if (isIOS) {
-                statusDiv.innerText = 'PDF 產生完成！正在載入閱讀器，請用『分享』儲存檔案...';
-                // iOS 平台上使用 output('bloburl') 直接轉向載入 PDF 閱讀器，解決 iOS Chrome/Safari 阻擋下載彈出視窗且會關閉頁面的問題
+                statusDiv.innerText = 'PDF 產生完成！正在載入閱讀器...';
+                // iOS 平台上使用 output('bloburl') 產生 PDF 記憶體網址
                 html2pdf().set(opt).from(element).output('bloburl').then((blobUrl) => {
-                  statusDiv.style.display = 'none';
-                  window.location.replace(blobUrl);
+                  // 清空原有空白 body，改用內嵌 iframe 顯示，徹底解決 iOS Chrome 頂層跳轉 Blob 被擋導致空白頁的 bug
+                  document.body.innerHTML = '';
+                  document.body.style.margin = '0';
+                  document.body.style.padding = '0';
+                  document.body.style.backgroundColor = '#ffffff';
+
+                  // 1. 建立頂部導航引導條
+                  const headerBar = document.createElement('div');
+                  headerBar.style.position = 'fixed';
+                  headerBar.style.top = '0';
+                  headerBar.style.left = '0';
+                  headerBar.style.right = '0';
+                  headerBar.style.height = '50px';
+                  headerBar.style.background = '#0f172a';
+                  headerBar.style.color = '#ffffff';
+                  headerBar.style.display = 'flex';
+                  headerBar.style.justify = 'space-between';
+                  headerBar.style.alignItems = 'center';
+                  headerBar.style.padding = '0 16px';
+                  headerBar.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                  headerBar.style.zIndex = '1000000';
+                  headerBar.style.boxSizing = 'border-box';
+                  headerBar.style.boxShadow = '0 4px 10px rgba(0,0,0,0.15)';
+                  
+                  headerBar.innerHTML = '<span style="font-size: 0.9rem; font-weight: 500; letter-spacing: 0.5px;">旅遊手札 PDF 預覽</span>' +
+                    '<a href="' + blobUrl + '" target="_blank" style="background: linear-gradient(135deg, #ff416c, #ff4b2b); color: #ffffff; text-decoration: none; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 2px 6px rgba(255,65,108,0.4); display: inline-flex; align-items: center; gap: 4px;">手動開啟 PDF</a>';
+                  document.body.appendChild(headerBar);
+
+                  // 2. 建立全螢幕嵌入的 iframe 顯示 PDF
+                  const iframeViewer = document.createElement('iframe');
+                  iframeViewer.src = blobUrl;
+                  iframeViewer.style.position = 'fixed';
+                  iframeViewer.style.top = '50px';
+                  iframeViewer.style.left = '0';
+                  iframeViewer.style.width = '100vw';
+                  iframeViewer.style.height = 'calc(100vh - 50px)';
+                  iframeViewer.style.border = 'none';
+                  iframeViewer.style.zIndex = '999999';
+                  
+                  document.body.appendChild(iframeViewer);
                 }).catch(err => {
                   statusDiv.style.background = '#ef4444';
                   statusDiv.innerText = '產生 PDF 失敗: ' + err.message;
