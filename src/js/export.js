@@ -205,7 +205,7 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
         }
         .photo-grid {
           gap: 10px !important;
-          grid-template-columns: repeat(2, 1fr) !important;
+          grid-template-columns: repeat(2, 1fr) !important; /* 強制雙欄排版更為緊湊 */
         }
         .photo-card {
           background: #ffffff !important;
@@ -245,194 +245,152 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
         }
       </style>
     `;
+    
+    // 自動下載與圖片 Base64 轉換腳本
+    const printScript = `
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
+      <script>
+        window.addEventListener('load', () => {
+          // 顯示下載狀態提示
+          const statusDiv = document.createElement('div');
+          statusDiv.style.position = 'fixed';
+          statusDiv.style.top = '20px';
+          statusDiv.style.left = '50%';
+          statusDiv.style.transform = 'translateX(-50%)';
+          statusDiv.style.background = 'rgba(15, 23, 42, 0.9)';
+          statusDiv.style.color = '#ffffff';
+          statusDiv.style.padding = '12px 24px';
+          statusDiv.style.borderRadius = '30px';
+          statusDiv.style.zIndex = '99999';
+          statusDiv.style.fontFamily = 'sans-serif';
+          statusDiv.style.fontSize = '0.9rem';
+          statusDiv.style.boxShadow = '0 10px 25px rgba(0,0,0,0.3)';
+          statusDiv.innerText = '正在載入 PDF 核心元件與相片...';
+          document.body.appendChild(statusDiv);
+
+          // 1. 下載並轉換圖片為 Base64 (徹底解決 CORS 圖片空白問題)
+          const convertImagesToBase64 = async () => {
+            const imgs = document.querySelectorAll('.container img');
+            if (imgs.length === 0) return;
+
+            const promises = Array.from(imgs).map(async (img) => {
+              const originalSrc = img.getAttribute('src');
+              if (!originalSrc || originalSrc.startsWith('data:')) return;
+              try {
+                const res = await fetch(originalSrc);
+                if (!res.ok) throw new Error('HTTP status ' + res.status);
+                const blob = await res.blob();
+                const base64Url = await new Promise((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result);
+                  reader.onerror = reject;
+                  reader.readAsDataURL(blob);
+                });
+                img.src = base64Url;
+              } catch (err) {
+                console.warn('相片轉換 Base64 失敗:', originalSrc, err);
+              }
+            });
+
+            // 限制最長 6 秒完成
+            const timeoutPromise = new Promise(resolve => setTimeout(resolve, 6000));
+            await Promise.race([Promise.all(promises), timeoutPromise]);
+          };
+
+          convertImagesToBase64().then(() => {
+            statusDiv.innerText = '相片載入完成，正在產生單頁長圖 PDF 檔案...';
+            
+            setTimeout(() => {
+              const element = document.querySelector('.container');
+              const elementWidth = element.offsetWidth || 700;
+              const elementHeight = element.offsetHeight || 1000;
+
+              // 檢測是否為 iOS 裝置 (iPhone / iPad)
+              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+              // 將像素轉換為 PDF 的 pt (點)
+              // 1 px = 0.75 pt (在 96 DPI 標準下)
+              // 高度加上 30pt 安全空間，保證 100% 裝在第一頁，絕不產生第二頁空白頁！
+              const widthInPt = elementWidth * 0.75;
+              const heightInPt = elementHeight * 0.75 + 30;
+
+              const opt = {
+                margin:       0, // 單頁長圖模式，無頁邊距
+                filename:     document.title.replace(' - 旅跡成果分享', '').replace(/\\s+/g, '_') + '_長圖.pdf',
+                image:        { type: 'jpeg', quality: 0.95 }, // 稍微降低至 0.95 減少記憶體開銷
+                html2canvas:  { 
+                  scale: isIOS ? 1 : 2, // iOS 裝置強制為 scale: 1，防止 WebKit 記憶體超載導致 Safari/Chrome 崩潰重整 (Reload)
+                  useCORS: true, 
+                  logging: false,
+                  backgroundColor: '#ffffff'
+                },
+                jsPDF:        { 
+                  unit: 'pt', 
+                  format: [widthInPt, heightInPt]
+                }
+              };
+
+              if (isIOS) {
+                statusDiv.innerText = 'PDF 產生完成！正在載入閱讀器，請用『分享』儲存檔案...';
+                // iOS 平台上使用 output('bloburl') 直接轉向載入 PDF 閱讀器，解決 iOS Chrome/Safari 阻擋下載彈出視窗且會關閉頁面的問題
+                html2pdf().set(opt).from(element).output('bloburl').then((blobUrl) => {
+                  statusDiv.style.display = 'none';
+                  window.location.replace(blobUrl);
+                }).catch(err => {
+                  statusDiv.style.background = '#ef4444';
+                  statusDiv.innerText = '產生 PDF 失敗: ' + err.message;
+                  console.error(err);
+                });
+              } else {
+                // 桌機與 Android 使用正常下載流程
+                html2pdf().set(opt).from(element).save().then(() => {
+                  statusDiv.innerText = 'PDF 下載已開始！此分頁將於 5 秒後自動關閉...';
+                  setTimeout(() => {
+                    window.close();
+                  }, 5000);
+                }).catch(err => {
+                  statusDiv.style.background = '#ef4444';
+                  statusDiv.innerText = '產生 PDF 失敗: ' + err.message;
+                  console.error(err);
+                });
+              }
+            }, 1000);
+          });
+        });
+      </script>
+    `;
 
     let styledHtml = htmlString;
+    // 注入樣式
     if (htmlString.includes('</head>')) {
       styledHtml = htmlString.replace('</head>', pdfStyle + '</head>');
     } else {
       styledHtml = pdfStyle + htmlString;
     }
+    
+    // 注入自動下載腳本 (置於 </body> 之前)
+    if (styledHtml.includes('</body>')) {
+      styledHtml = styledHtml.replace('</body>', printScript + '</body>');
+    } else {
+      styledHtml = styledHtml + printScript;
+    }
 
-    // 1. 在主視窗中建立一個隱藏的 iframe 來加載並渲染 HTML 內容，防範主頁樣式污染
-    if (onStatusUpdate) onStatusUpdate('正在載入 PDF 渲染模組...');
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.width = '700px';
-    iframe.style.height = '1000px'; 
-    iframe.style.left = '-9999px';
-    iframe.style.opacity = '0';
-    document.body.appendChild(iframe);
+    // 1. 開啟新分頁
+    if (onStatusUpdate) onStatusUpdate('正在開啟下載分頁...');
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      throw new Error('無法開啟 PDF 下載分頁，請檢查您的瀏覽器是否封鎖了快顯視窗！');
+    }
 
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-    iframeDoc.open();
-    iframeDoc.write(styledHtml);
-    iframeDoc.close();
-    iframeDoc.documentElement.setAttribute('data-theme', 'light');
+    // 2. 寫入內容，新分頁會自動執行轉換並下載
+    printWindow.document.open();
+    printWindow.document.write(styledHtml);
+    printWindow.document.close();
+    
+    // 啟動 Light Mode 主題變數 (在新視窗中)
+    printWindow.document.documentElement.setAttribute('data-theme', 'light');
 
-    // 2. 動態下載並載入 html2pdf.js 到【主視窗】中，避免彈出分頁載入外部腳本遭 iOS 沙盒安全封鎖
-    const loadLibrary = (callback) => {
-      if (window.html2pdf) {
-        callback(window.html2pdf);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-      script.crossOrigin = 'anonymous';
-      script.onload = () => callback(window.html2pdf);
-      script.onerror = () => {
-        document.body.removeChild(iframe);
-        if (onError) onError(new Error('下載 PDF 核心元件失敗，請確認網路連線！'));
-      };
-      document.body.appendChild(script);
-    };
-
-    loadLibrary((html2pdf) => {
-      if (onStatusUpdate) onStatusUpdate('正在下載並轉換相片資源...');
-
-      // 3. 下載並將相片轉成 Base64 (iOS 上完全禁用以節省 90% 記憶體，避免 WebKit OOM)
-      const convertImagesToBase64 = async () => {
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        if (isIOS) return; // iOS 禁用以策安全
-
-        const imgs = iframeDoc.querySelectorAll('img');
-        if (imgs.length === 0) return;
-
-        const promises = Array.from(imgs).map(async (img) => {
-          const originalSrc = img.getAttribute('src');
-          if (!originalSrc || originalSrc.startsWith('data:')) return;
-          try {
-            const res = await fetch(originalSrc);
-            if (!res.ok) throw new Error('HTTP status ' + res.status);
-            const blob = await res.blob();
-            const base64Url = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
-            img.src = base64Url;
-          } catch (err) {
-            console.warn('相片轉換 Base64 失敗:', originalSrc, err);
-          }
-        });
-
-        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 8000));
-        await Promise.race([Promise.all(promises), timeoutPromise]);
-      };
-
-      convertImagesToBase64().then(() => {
-        if (onStatusUpdate) onStatusUpdate('正在產生 PDF 長圖...');
-
-        setTimeout(() => {
-          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-          // iOS 上將相片規格替換為 w400 縮圖，顯著降低解碼與圖片記憶體開銷
-          if (isIOS) {
-            const imgs = iframeDoc.querySelectorAll('img');
-            imgs.forEach(img => {
-              const src = img.getAttribute('src');
-              if (src && src.includes('=w1200')) {
-                img.src = src.replace('=w1200', '=w400');
-              }
-            });
-          }
-
-          const element = iframeDoc.querySelector('.container');
-          const elementWidth = element.offsetWidth || 700;
-          const elementHeight = element.offsetHeight || 1000;
-
-          // 1 px = 0.75 pt (在 96 DPI 標準下)
-          // 高度加上 30pt 安全空間，保證 100% 裝在第一頁，絕不產生第二頁空白頁！
-          const widthInPt = elementWidth * 0.75;
-          const heightInPt = elementHeight * 0.75 + 30;
-
-          // 根據元件實際尺寸，動態調變渲染比例，防範 WebKit Canvas 記憶體限制 (OOM) 導致瀏覽器重載
-          const maxCanvasArea = isIOS ? 2500000 : 12000000; // iOS 縮減為 250 萬像素以求絕對安全
-          const currentArea = elementWidth * elementHeight;
-          
-          let targetScale = 2.0;
-          if (isIOS) {
-            if (currentArea > maxCanvasArea) {
-              targetScale = Math.sqrt(maxCanvasArea / currentArea);
-              if (targetScale < 0.45) targetScale = 0.45; // 最低比例限制
-            } else {
-              targetScale = 0.85; // iOS 預設比例降為 0.85x，確保記憶體安全且畫質可讀
-            }
-          } else {
-            if (currentArea > maxCanvasArea) {
-              targetScale = Math.sqrt(maxCanvasArea / currentArea);
-              if (targetScale < 1.0) targetScale = 1.0;
-            } else {
-              targetScale = 2.0;
-            }
-          }
-
-          console.log('PDF 渲染參數 - 寬:', elementWidth, '高:', elementHeight, '動態縮放比例:', targetScale);
-
-          const opt = {
-            margin:       0,
-            filename:     document.title.replace(' - 旅跡成果分享', '').replace(/\s+/g, '_') + '_長圖.pdf',
-            image:        { type: 'jpeg', quality: 0.90 }, // 降低品質至 0.90 減低二進位處理記憶體
-            html2canvas:  { 
-              scale: targetScale, // 動態調變比例
-              useCORS: true, 
-              logging: false,
-              backgroundColor: '#ffffff'
-            },
-            jsPDF:        { 
-              unit: 'pt', 
-              format: [widthInPt, heightInPt]
-            }
-          };
-
-          if (isIOS) {
-            // iOS 平台上使用 output('bloburl') 產生 PDF 記憶體網址
-            html2pdf().set(opt).from(element).output('bloburl').then((blobUrl) => {
-              document.body.removeChild(iframe);
-              
-              // 在 iOS 上，我們開啟一個全新視窗，且不加載 any 外部 script，純靜態顯示
-              const printWindow = window.open('', '_blank');
-              if (!printWindow) {
-                if (onError) onError(new Error('無法開啟 PDF 預覽分頁，請允許瀏覽器快顯視窗！'));
-                return;
-              }
-              
-              printWindow.document.open();
-              printWindow.document.write(`
-                <html>
-                <head>
-                  <title>旅跡手札 - PDF 預覽</title>
-                  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                </head>
-                <body style="margin:0;padding:0;background:#0f172a;overflow:hidden;">
-                  <div style="background:#0f172a;color:#ffffff;padding:0 16px;display:flex;justify-content:space-between;align-items:center;height:50px;box-shadow:0 4px 10px rgba(0,0,0,0.15);box-sizing:border-box;position:fixed;top:0;left:0;right:0;z-index:1000;">
-                    <span style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:0.9rem;font-weight:500;">旅遊手札 PDF 預覽</span>
-                    <a href="${blobUrl}" target="_blank" style="background:linear-gradient(135deg, #ff416c, #ff4b2b);color:#ffffff;text-decoration:none;padding:6px 12px;border-radius:20px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:0.75rem;font-weight:bold;box-shadow:0 2px 6px rgba(255,65,108,0.4);">在新分頁打開 PDF</a>
-                  </div>
-                  <iframe src="${blobUrl}" style="position:fixed;top:50px;left:0;width:100vw;height:calc(100vh - 50px);border:none;z-index:99;"></iframe>
-                </body>
-                </html>
-              `);
-              printWindow.document.close();
-
-              if (onComplete) onComplete();
-            }).catch(err => {
-              document.body.removeChild(iframe);
-              if (onError) onError(err);
-            });
-          } else {
-            // 桌機與 Android 使用正常下載流程，在主頁面直接觸發下載，省去開啟新分頁
-            html2pdf().set(opt).from(element).save().then(() => {
-              document.body.removeChild(iframe);
-              if (onComplete) onComplete();
-            }).catch(err => {
-              document.body.removeChild(iframe);
-              if (onError) onError(err);
-            });
-          }
-        }, 1000);
-      });
-    });
+    if (onComplete) onComplete();
   } catch (err) {
     if (onError) onError(err);
   }
