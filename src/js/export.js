@@ -333,12 +333,35 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
           // 檢測是否為 iOS 裝置 (iPhone / iPad)
           const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+          // 根據元件實際尺寸，動態調變渲染比例，防範 WebKit Canvas 記憶體限制 (OOM) 導致瀏覽器重載
+          const maxCanvasArea = isIOS ? 3000000 : 12000000; // iOS 限制在 300 萬像素，桌機限制在 1200 萬像素
+          const currentArea = elementWidth * elementHeight;
+          
+          let targetScale = 2.0;
+          if (isIOS) {
+            if (currentArea > maxCanvasArea) {
+              targetScale = Math.sqrt(maxCanvasArea / currentArea);
+              if (targetScale < 0.45) targetScale = 0.45; // 最低比例限制，防過度模糊
+            } else {
+              targetScale = 1.0;
+            }
+          } else {
+            if (currentArea > maxCanvasArea) {
+              targetScale = Math.sqrt(maxCanvasArea / currentArea);
+              if (targetScale < 1.0) targetScale = 1.0;
+            } else {
+              targetScale = 2.0;
+            }
+          }
+
+          console.log('PDF 渲染參數 - 寬:', elementWidth, '高:', elementHeight, '動態縮放比例:', targetScale);
+
           const opt = {
             margin:       0,
             filename:     document.title.replace(' - 旅跡成果分享', '').replace(/\s+/g, '_') + '_長圖.pdf',
-            image:        { type: 'jpeg', quality: 0.95 },
+            image:        { type: 'jpeg', quality: 0.93 }, // 降低品質至 0.93 減少記憶體壓縮負擔
             html2canvas:  { 
-              scale: isIOS ? 1 : 2, // iOS 裝置強制為 scale: 1，防止 WebKit 記憶體超載導致 Safari/Chrome 崩潰重整 (Reload)
+              scale: targetScale, // 動態調變比例
               useCORS: true, 
               logging: false,
               backgroundColor: '#ffffff'
