@@ -143,7 +143,7 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
           width: 700px !important;
           max-width: 700px !important;
           margin: 0 auto !important;
-          padding: 16px 12px !important;
+          padding: 24px 16px !important;
           box-shadow: none !important;
           background: #ffffff !important;
           background-color: #ffffff !important;
@@ -181,6 +181,9 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
           break-inside: avoid !important;
           margin-bottom: 16px !important;
           padding: 16px !important;
+        }
+        .spot-item:last-child .spot-card {
+          margin-bottom: 0 !important;
         }
         .spot-header {
           padding-bottom: 6px !important;
