@@ -294,12 +294,16 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
           };
 
           convertImagesToBase64().then(() => {
-            statusDiv.innerText = '相片載入完成，正在產生 PDF 檔案...';
+            statusDiv.innerText = '相片載入完成，正在產生單頁長圖 PDF 檔案...';
             
             setTimeout(() => {
+              const element = document.querySelector('.container');
+              const elementWidth = element.offsetWidth || 700;
+              const elementHeight = element.offsetHeight || 1000;
+
               const opt = {
-                margin:       [10, 10, 10, 10],
-                filename:     document.title.replace(' - 旅跡成果分享', '').replace(/\\s+/g, '_') + '.pdf',
+                margin:       0, // 單頁長圖模式，無頁邊距
+                filename:     document.title.replace(' - 旅跡成果分享', '').replace(/\\s+/g, '_') + '_長捲軸.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { 
                   scale: 2, 
@@ -307,11 +311,13 @@ export function exportToPdf(trip, spots, theme = 'youth', onStatusUpdate = null,
                   logging: false,
                   backgroundColor: '#ffffff'
                 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: ['css', 'legacy'] }
+                jsPDF:        { 
+                  unit: 'px', 
+                  format: [elementWidth, elementHeight], 
+                  hotfixes: ['px_scaling'] 
+                }
               };
 
-              const element = document.querySelector('.container');
               html2pdf().set(opt).from(element).save().then(() => {
                 statusDiv.innerText = 'PDF 下載成功！即將關閉此分頁...';
                 setTimeout(() => {

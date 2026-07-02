@@ -1427,7 +1427,7 @@ function showExportModal(preselectedTripId = null) {
           </button>
 
           <button class="btn btn-secondary" id="btn-do-export-pdf" style="background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; border: none;">
-            <i class="fa-solid fa-file-pdf"></i> 匯出為 PDF 檔案 (適合列印/保存電子檔)
+            <i class="fa-solid fa-file-pdf"></i> 匯出為單頁長圖 PDF (適合手機滾動閱讀，無分頁切斷)
           </button>
           
           <button class="btn btn-secondary" id="btn-do-export-md">
